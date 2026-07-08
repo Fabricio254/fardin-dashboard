@@ -648,7 +648,18 @@ def style_app(theme: str) -> None:
             background: {colors["app_bg"]};
             color: {colors["text"]};
         }}
-        .block-container {{padding-top: 1.2rem; padding-bottom: 2rem;}}
+        .block-container {{
+            max-width: 1480px;
+            padding-top: 1.2rem;
+            padding-right: 2rem;
+            padding-left: 2rem;
+            padding-bottom: 2rem;
+        }}
+        @media (min-width: 1200px) {{
+            .block-container {{
+                max-width: 1540px;
+            }}
+        }}
         [data-testid="stSidebar"] {{
             background: {colors["sidebar_bg"]};
             border-right: 1px solid {colors["border"]};
@@ -743,7 +754,12 @@ def style_app(theme: str) -> None:
         h1, h2, h3, h4, h5, h6, p, label, span {{
             color: inherit;
         }}
-        [data-testid="stMetricValue"] {{font-size: 1.55rem; color: {colors["text"]};}}
+        [data-testid="stMetricValue"] {{
+            color: {colors["text"]};
+            font-size: clamp(1.25rem, 1.5vw, 1.65rem);
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }}
         [data-testid="stMetricDelta"] {{
             color: {colors["delta_text"]};
             background: {colors["delta_bg"]};
@@ -1461,9 +1477,9 @@ def main() -> None:
     style_app(theme)
     resumo_source, avaliacoes_source, resumo_name, avaliacoes_name = select_data_sources()
     if LOGO_PATH.exists():
-        logo_col, title_col = st.columns([0.12, 0.88], vertical_alignment="center")
+        logo_col, title_col = st.columns([0.11, 0.89], vertical_alignment="center")
         with logo_col:
-            st.image(str(LOGO_PATH), width=112)
+            st.image(str(LOGO_PATH), width=104)
         with title_col:
             st.markdown(
                 """
