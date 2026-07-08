@@ -1,0 +1,22 @@
+﻿# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Windows/local
+Thumbs.db
+.DS_Store
+
+# Ambientes e segredos
+.env
+.venv/
+venv/
+.streamlit/secrets.toml
+
+# Editor
+.vscode/
+.idea/
+
+# Temporários
+_tmp*.py
+_test_*.py
