@@ -1563,10 +1563,7 @@ def main() -> None:
     with tab_daily:
         render_daily_tab(filtered_daily, filtered_sellers, metas)
     with tab_sellers:
-        if is_demo_access():
-            render_development_notice()
-        else:
-            render_seller_tab(filtered_sellers)
+        render_seller_tab(filtered_sellers)
     with tab_goals:
         if is_demo_access():
             render_development_notice()
@@ -1599,5 +1596,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 
