@@ -3,6 +3,7 @@
 from html import escape
 from io import BytesIO
 from pathlib import Path
+import os
 
 import numpy as np
 import pandas as pd
@@ -47,6 +48,8 @@ def source_name(source: WorkbookSource, uploaded_name: str | None, default_path:
         return uploaded_name
     return default_path.name
 
+def is_streamlit_cloud() -> bool:
+    return bool(os.environ.get("STREAMLIT_SHARING") or os.environ.get("STREAMLIT_CLOUD"))
 
 MONTH_SHEETS = ("Fev26", "Mar26", "Abr26", "Mai26", "Jun26", "Jul26")
 MONTH_ORDER = {
@@ -561,10 +564,11 @@ def select_theme() -> str:
         st.divider()
     return "dark" if choice == "Escuro" else "light"
 
-def select_data_sources() -> tuple[WorkbookSource, WorkbookSource, str, str]:
+def select_data_sources() -> tuple[WorkbookSource | None, WorkbookSource | None, str, str]:
+    require_upload = is_streamlit_cloud()
     with st.sidebar:
         st.markdown("### Arquivos de dados")
-        st.caption("Selecione novas planilhas quando precisar atualizar o painel.")
+        st.caption("Envie as planilhas atualizadas da Fardin para carregar o painel.")
 
         st.markdown("<div class='upload-title'>Resumo diario de vendas</div>", unsafe_allow_html=True)
         resumo_upload = st.file_uploader(
@@ -573,9 +577,9 @@ def select_data_sources() -> tuple[WorkbookSource, WorkbookSource, str, str]:
             key="resumo_xlsx_upload",
             label_visibility="collapsed",
         )
-        resumo_source: WorkbookSource = resumo_upload.getvalue() if resumo_upload else RESUMO_XLSX
-        resumo_name = source_name(resumo_source, resumo_upload.name if resumo_upload else None, RESUMO_XLSX)
-        resumo_status = "Selecionado" if resumo_upload else "Padrao"
+        resumo_source: WorkbookSource | None = resumo_upload.getvalue() if resumo_upload else (None if require_upload else RESUMO_XLSX)
+        resumo_name = resumo_upload.name if resumo_upload else ("Aguardando upload" if require_upload else RESUMO_XLSX.name)
+        resumo_status = "Selecionado" if resumo_upload else ("Obrigatorio" if require_upload else "Padrao")
         st.markdown(
             f"<div class='file-status'><span>{resumo_status}</span><strong>{escape(resumo_name)}</strong></div>",
             unsafe_allow_html=True,
@@ -588,9 +592,9 @@ def select_data_sources() -> tuple[WorkbookSource, WorkbookSource, str, str]:
             key="avaliacoes_xlsx_upload",
             label_visibility="collapsed",
         )
-        avaliacoes_source: WorkbookSource = avaliacoes_upload.getvalue() if avaliacoes_upload else AVALIACOES_XLSX
-        avaliacoes_name = source_name(avaliacoes_source, avaliacoes_upload.name if avaliacoes_upload else None, AVALIACOES_XLSX)
-        avaliacoes_status = "Selecionado" if avaliacoes_upload else "Padrao"
+        avaliacoes_source: WorkbookSource | None = avaliacoes_upload.getvalue() if avaliacoes_upload else (None if require_upload else AVALIACOES_XLSX)
+        avaliacoes_name = avaliacoes_upload.name if avaliacoes_upload else ("Aguardando upload" if require_upload else AVALIACOES_XLSX.name)
+        avaliacoes_status = "Selecionado" if avaliacoes_upload else ("Obrigatorio" if require_upload else "Padrao")
         st.markdown(
             f"<div class='file-status'><span>{avaliacoes_status}</span><strong>{escape(avaliacoes_name)}</strong></div>",
             unsafe_allow_html=True,
@@ -598,6 +602,7 @@ def select_data_sources() -> tuple[WorkbookSource, WorkbookSource, str, str]:
         st.divider()
 
     return resumo_source, avaliacoes_source, resumo_name, avaliacoes_name
+
 def style_app(theme: str) -> None:
     if theme == "light":
         colors = {
@@ -779,6 +784,24 @@ def style_app(theme: str) -> None:
             .hero h1 {{
                 font-size: 1.35rem;
             }}
+        }}
+        .file-required-panel {{
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            margin: 16px 0 24px;
+            padding: 18px 20px;
+            border: 1px solid {colors["border"]};
+            border-radius: 8px;
+            background: {colors["panel_bg"]};
+        }}
+        .file-required-panel strong {{
+            color: {colors["text"]};
+            font-size: 1rem;
+        }}
+        .file-required-panel span {{
+            color: {colors["muted"]};
+            font-size: .9rem;
         }}
         .app-footer {{
             margin-top: 28px;
@@ -1462,6 +1485,20 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
+    if resumo_source is None or avaliacoes_source is None:
+        st.warning("Envie os dois arquivos Excel para carregar o dashboard.")
+        st.markdown(
+            """
+            <div class="file-required-panel">
+              <strong>Arquivos obrigatórios</strong>
+              <span>1. Resumo Diário de Vendas</span>
+              <span>2. Avaliações de Desempenho Comercial</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.stop()
+
     missing = []
     if isinstance(resumo_source, Path) and not resumo_source.exists():
         missing.append(str(resumo_source))
@@ -1471,7 +1508,6 @@ def main() -> None:
         st.error("Arquivo(s) nao encontrado(s): " + ", ".join(missing))
         st.info("Selecione os dois arquivos Excel na barra lateral em Arquivos de dados.")
         st.stop()
-
     try:
         daily, sellers, metas = load_monthly_summary(resumo_source)
         meta_global = load_meta_global(avaliacoes_source)
@@ -1547,39 +1583,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
