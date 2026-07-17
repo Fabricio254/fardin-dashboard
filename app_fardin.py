@@ -156,32 +156,37 @@ def style_app() -> None:
             height: 0 !important;
             pointer-events: none !important;
         }
-        /* === MENU DROPDOWN ADMINISTRATIVO (Manage App) === */
-        [data-testid="stMenuBtn"],
-        [role="menu"],
-        [role="menuitem"],
-        button[data-testid*="menu"],
-        button[aria-haspopup="menu"],
-        button[aria-haspopup="dialog"],
-        [aria-label*="menu"],
-        [aria-label*="Menu"],
-        .st-emotion-cache-1v0mbqg,
-        [class*="stMenuBtn"],
-        [class*="menuitem"],
-        [class*="stMenu"],
-        div[role="menu"] button,
-        div[role="menu"] a,
-        div[aria-label*="Settings"],
-        button[aria-label*="Settings"],
-        [title*="Settings"],
-        [data-testid*="settings"],
-        [data-testid*="Settings"] {
+        /* === MANAGE APP - BLOQUEIO TOTAL === */
+        button[style*="bottom"][style*="right"],
+        button[style*="bottom"][style*="left"],
+        a[style*="bottom"][style*="right"],
+        a[style*="bottom"][style*="left"],
+        /* Elemento fixed no canto inferior */
+        button[style*="position: fixed"],
+        button[style*="position:fixed"],
+        a[style*="position: fixed"],
+        a[style*="position:fixed"],
+        div[style*="position: fixed"] button,
+        div[style*="position:fixed"] button,
+        /* Último botão em containers administrativos */
+        .stAppHeader button:last-child,
+        [data-testid="stAppHeader"] button:last-child,
+        /* Menu/Dropdown administrativo */
+        button[aria-label*="app"][aria-label*="manage"],
+        button[aria-label*="Manage"],
+        button[title*="Manage"],
+        button[class*="stActionButton"],
+        /* Bloquear qualquer overlay ou popover */
+        [role="dialog"] button,
+        [role="alertdialog"] button {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
             height: 0 !important;
             width: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         /* === ÍCONES/BOTÕES CANTO SUPERIOR DIREITO === */
         header button,
@@ -441,6 +446,46 @@ def style_app() -> None:
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
         }
         </style>
+        <script>
+        // Remover botão "Manage app" e qualquer elemento administrativo
+        function removeManageApp() {
+            // Remover por texto
+            const buttons = document.querySelectorAll('button, a, [role="button"]');
+            buttons.forEach(btn => {
+                const text = btn.textContent?.toLowerCase() || '';
+                if (text.includes('manage') || text.includes('app') || text.includes('settings')) {
+                    btn.style.display = 'none !important';
+                    btn.style.visibility = 'hidden !important';
+                    btn.style.pointerEvents = 'none !important';
+                    btn.remove();
+                }
+            });
+            
+            // Remover elementos com classe ou data-testid administrativos
+            const adminElements = document.querySelectorAll(
+                '[data-testid*="menu"], [data-testid*="settings"], [role="menu"], [role="dialog"]'
+            );
+            adminElements.forEach(el => {
+                if (!el.textContent?.toLowerCase().includes('filter') && 
+                    !el.textContent?.toLowerCase().includes('upload')) {
+                    el.style.display = 'none !important';
+                    el.remove();
+                }
+            });
+        }
+        
+        // Executar ao carregar
+        removeManageApp();
+        
+        // Monitorar alterações (MutationObserver)
+        const observer = new MutationObserver(() => removeManageApp());
+        observer.observe(document.body, { 
+            childList: true, 
+            subtree: true, 
+            attributes: true,
+            attributeFilter: ['style', 'class', 'data-testid']
+        });
+        </script>
         """,
         unsafe_allow_html=True,
     )
