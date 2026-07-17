@@ -29,6 +29,27 @@ def style_app() -> None:
     st.markdown(
         """
         <style>
+        #MainMenu,
+        footer,
+        header,
+        [data-testid="stToolbar"],
+        [data-testid="stHeader"],
+        [data-testid="stDecoration"],
+        [data-testid="stStatusWidget"],
+        [data-testid="stDeployButton"],
+        [data-testid="stAppDeployButton"],
+        [data-testid="manage-app-button"],
+        .stDeployButton,
+        .viewerBadge_container__1QSob,
+        .viewerBadge_link__1S137,
+        .viewerBadge_text__1JaDK {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+        }
+        .stApp {
+            margin-top: 0 !important;
+        }
         .block-container {
             padding-top: 2.8rem;
             max-width: 1220px;
