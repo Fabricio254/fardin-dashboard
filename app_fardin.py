@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from base64 import b64encode
 from io import BytesIO
@@ -449,7 +449,7 @@ def build_meta_editor(vendedores: list[str], total_vendido: float) -> tuple[floa
         st.session_state["metas_vendedores"],
         key="metas_editor",
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
         column_config={
             "Vendedor": st.column_config.TextColumn("Vendedor", disabled=True),
             "Meta": st.column_config.NumberColumn("Meta", min_value=0.0, step=500.0, format="R$ %.2f"),
@@ -543,12 +543,12 @@ def render_tables(pedidos: pd.DataFrame, vendas: pd.DataFrame, metas: pd.DataFra
     display_perf = display_perf.rename(columns={"Valor_Pedidos": "Valor Pedidos", "A_Faturar": "A Faturar"})
 
     st.subheader("Desempenho por vendedor")
-    st.dataframe(display_perf, use_container_width=True, hide_index=True)
+    st.dataframe(display_perf, width="stretch", hide_index=True)
 
     if not perf.empty:
         fig = px.bar(perf, x="Vendedor", y=["Vendas", "Meta"], barmode="group", title="Vendas x Meta por vendedor")
         fig.update_layout(legend_title_text="", yaxis_title="Valor", xaxis_title="")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     vendas_validas = vendas[vendas["Venda Valida"]].copy()
     diario = vendas_validas.groupby("Data", as_index=False)["Valor Total Liquido"].sum().sort_values("Data")
@@ -556,7 +556,7 @@ def render_tables(pedidos: pd.DataFrame, vendas: pd.DataFrame, metas: pd.DataFra
         st.subheader("Vendas diarias")
         fig = px.line(diario, x="Data", y="Valor Total Liquido", markers=True)
         fig.update_layout(yaxis_title="Valor vendido", xaxis_title="Data")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     tab_vendas, tab_pedidos = st.tabs(["Vendas", "Pedidos"])
     with tab_vendas:
@@ -564,14 +564,14 @@ def render_tables(pedidos: pd.DataFrame, vendas: pd.DataFrame, metas: pd.DataFra
         view = vendas[cols].sort_values("Data", ascending=False).copy()
         view["Data"] = view["Data"].dt.strftime("%d/%m/%Y")
         view["Valor Total Liquido"] = view["Valor Total Liquido"].map(money)
-        st.dataframe(view, use_container_width=True, hide_index=True)
+        st.dataframe(view, width="stretch", hide_index=True)
     with tab_pedidos:
         cols = ["Data", "Pedido", "Cliente", "Vendedor", "Valor do Pedido", "Valor A Faturar", "Situacao Atendimento"]
         view = pedidos[cols].sort_values("Data", ascending=False).copy()
         view["Data"] = view["Data"].dt.strftime("%d/%m/%Y")
         view["Valor do Pedido"] = view["Valor do Pedido"].map(money)
         view["Valor A Faturar"] = view["Valor A Faturar"].map(money)
-        st.dataframe(view, use_container_width=True, hide_index=True)
+        st.dataframe(view, width="stretch", hide_index=True)
 
 
 def main() -> None:
@@ -625,4 +625,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
