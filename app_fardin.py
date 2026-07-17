@@ -943,13 +943,99 @@ def require_password() -> None:
         st.error("Senha do dashboard nao configurada. Configure DASHBOARD_PASSWORD nos secrets do Streamlit Cloud.")
         st.stop()
 
+    st.markdown(
+        """
+        <style>
+        [data-testid="stSidebar"] { display: none !important; }
+        .block-container {
+            max-width: 760px !important;
+            padding-top: 8vh !important;
+            padding-bottom: 2rem !important;
+        }
+        .login-shell {
+            width: min(100%, 520px);
+            margin: 0 auto;
+            text-align: center;
+        }
+        .login-logo {
+            width: 96px;
+            height: 96px;
+            margin: 0 auto 20px;
+            border-radius: 10px;
+            background: #ffffff;
+            padding: 6px;
+            box-shadow: 0 18px 44px rgba(0, 0, 0, .34);
+        }
+        .login-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 7px;
+            display: block;
+        }
+        .login-title {
+            margin: 0 0 8px;
+            color: #f8fafc;
+            font-size: 2.05rem;
+            font-weight: 800;
+            line-height: 1.12;
+        }
+        .login-subtitle {
+            margin: 0 0 24px;
+            color: #cbd5e1;
+            font-size: .98rem;
+        }
+        div[data-testid="stForm"] {
+            width: min(100%, 420px);
+            margin: 0 auto;
+            padding: 22px 22px 18px;
+            background: rgba(15, 23, 42, .94);
+            border: 1px solid rgba(148, 163, 184, .24);
+            border-radius: 8px;
+            box-shadow: 0 18px 48px rgba(0, 0, 0, .26);
+        }
+        div[data-testid="stForm"] label p {
+            color: #e5e7eb;
+            font-weight: 700;
+        }
+        div[data-testid="stForm"] input {
+            min-height: 44px;
+        }
+        div[data-testid="stForm"] button {
+            width: 100%;
+            min-height: 42px;
+            margin-top: 6px;
+        }
+        @media (max-width: 640px) {
+            .block-container { padding-top: 5vh !important; }
+            .login-title { font-size: 1.65rem; }
+            .login-logo { width: 82px; height: 82px; }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     if LOGO_PATH.exists():
-        st.markdown(logo_html(LOGO_PATH), unsafe_allow_html=True)
-    st.markdown("# Dashboard Comercial - Fardin")
+        logo_src = b64encode(LOGO_PATH.read_bytes()).decode("ascii")
+        logo_markup = f'<div class="login-logo"><img src="data:image/jpeg;base64,{logo_src}" alt="Fardin"></div>'
+    else:
+        logo_markup = ""
+
+    st.markdown(
+        f"""
+        <div class="login-shell">
+            {logo_markup}
+            <h1 class="login-title">Dashboard Comercial - Fardin</h1>
+            <p class="login-subtitle">Acesso restrito</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
     with st.form("dashboard_login"):
-        password = st.text_input("Senha", type="password")
-        submitted = st.form_submit_button("Entrar")
+        password = st.text_input("Senha", type="password", placeholder="Digite sua senha")
+        submitted = st.form_submit_button("Entrar", use_container_width=True, type="primary")
 
     if submitted:
         if hmac.compare_digest(password, expected_password):
