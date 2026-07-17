@@ -13,13 +13,14 @@ BASE_DIR = Path(__file__).resolve().parent
 PEDIDO_XLS = BASE_DIR / "Pedido.XLS"
 VENDA_XLS = BASE_DIR / "Venda.XLS"
 LOGO_PATH = BASE_DIR / "logo fardin.jpg"
+FAVICON_PATH = BASE_DIR / "favicon-fardin.png"
 
 WorkbookSource = str | Path | bytes
 
 
 st.set_page_config(
     page_title="Dashboard Comercial - Fardin",
-    page_icon="F",
+    page_icon=str(FAVICON_PATH),
     layout="wide",
 )
 
@@ -594,6 +595,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
 
