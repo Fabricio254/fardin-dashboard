@@ -204,33 +204,34 @@ def style_app() -> None:
             color: #cbd5e1;
             font-size: .76rem;
         }
-        section[data-testid="stSidebar"] div[data-testid="stMultiSelect"] > div {
-            border-radius: 8px;
-        }
-        section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
-            min-height: 98px;
+        section[data-testid="stSidebar"] div[data-testid="stPills"] {
+            padding: 10px;
             border: 1px solid rgba(148, 163, 184, .24);
             border-radius: 8px;
             background: linear-gradient(180deg, rgba(15, 23, 42, .86), rgba(2, 6, 23, .68));
             box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
         }
-        section[data-testid="stSidebar"] div[data-baseweb="select"] > div:hover {
-            border-color: rgba(56, 189, 248, .38);
-        }
-        section[data-testid="stSidebar"] span[data-baseweb="tag"] {
-            max-width: 138px;
-            border: 1px solid rgba(56, 189, 248, .24);
-            border-radius: 6px;
-            background: rgba(30, 41, 59, .95);
-            color: #e5edf7;
+        section[data-testid="stSidebar"] div[data-testid="stPills"] button {
+            max-width: 100%;
+            margin: 0 4px 7px 0;
+            border: 1px solid rgba(148, 163, 184, .22);
+            border-radius: 7px;
+            background: rgba(30, 41, 59, .72);
+            color: #dbe7f3;
             font-size: .68rem;
-            font-weight: 700;
+            font-weight: 750;
+            letter-spacing: 0;
         }
-        section[data-testid="stSidebar"] span[data-baseweb="tag"] span {
-            color: #e5edf7;
+        section[data-testid="stSidebar"] div[data-testid="stPills"] button:hover {
+            border-color: rgba(56, 189, 248, .45);
+            background: rgba(51, 65, 85, .92);
+            color: #f8fafc;
         }
-        section[data-testid="stSidebar"] span[data-baseweb="tag"] svg {
-            color: #94a3b8;
+        section[data-testid="stSidebar"] div[data-testid="stPills"] button[aria-pressed="true"] {
+            border-color: rgba(56, 189, 248, .58);
+            background: linear-gradient(180deg, rgba(14, 116, 144, .55), rgba(15, 23, 42, .88));
+            color: #f8fafc;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
         }
         </style>
         """,
@@ -440,12 +441,15 @@ def apply_filters(pedidos: pd.DataFrame, vendas: pd.DataFrame) -> tuple[pd.DataF
 
     vendedores = sorted(set(pedidos["Vendedor"]).union(vendas["Vendedor"]) - {""})
     st.sidebar.markdown('<div class="filter-heading">Vendedores</div>', unsafe_allow_html=True)
-    selected = st.sidebar.multiselect(
+    selected = st.sidebar.pills(
         "Vendedores",
         vendedores,
+        selection_mode="multi",
         default=vendedores,
         label_visibility="collapsed",
+        width="stretch",
     )
+    selected = selected or []
     st.sidebar.markdown(
         f'<div class="filter-summary">{len(selected)} de {len(vendedores)} vendedores selecionados</div>',
         unsafe_allow_html=True,
@@ -455,9 +459,8 @@ def apply_filters(pedidos: pd.DataFrame, vendas: pd.DataFrame) -> tuple[pd.DataF
     end_ts = pd.Timestamp(end)
     pedidos_f = pedidos[pedidos["Data"].between(start_ts, end_ts)].copy()
     vendas_f = vendas[vendas["Data"].between(start_ts, end_ts)].copy()
-    if selected:
-        pedidos_f = pedidos_f[pedidos_f["Vendedor"].isin(selected)]
-        vendas_f = vendas_f[vendas_f["Vendedor"].isin(selected)]
+    pedidos_f = pedidos_f[pedidos_f["Vendedor"].isin(selected)]
+    vendas_f = vendas_f[vendas_f["Vendedor"].isin(selected)]
     return pedidos_f, vendas_f
 
 
@@ -591,4 +594,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
