@@ -1025,13 +1025,30 @@ def require_password() -> None:
             opacity: 1 !important;
             font-weight: 500 !important;
         }
-        div[data-testid="stForm"] div[data-testid="stTextInput"] button {
-            color: #0f172a !important;
-            background: transparent !important;
-            border: 0 !important;
-            min-height: 44px !important;
-            width: 42px !important;
+        div[data-testid="stForm"] div[data-testid="stTextInput"] input {
+            padding-right: 14px !important;
+        }
+        div[data-testid="stForm"] div[data-testid="stTextInput"] button,
+        div[data-testid="stForm"] div[data-testid="stTextInput"] [role="button"],
+        div[data-testid="stForm"] div[data-testid="stTextInput"] svg {
+            display: none !important;
+            visibility: hidden !important;
+            width: 0 !important;
+            min-width: 0 !important;
+            height: 0 !important;
+            padding: 0 !important;
             margin: 0 !important;
+            border: 0 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        div[data-baseweb="tooltip"],
+        div[data-baseweb="popover"],
+        [role="tooltip"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
         }
         div[data-testid="stForm"] button[kind="primary"] {
             width: 100%;
