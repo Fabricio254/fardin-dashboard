@@ -56,6 +56,60 @@ def style_app() -> None:
             visibility: hidden !important;
             pointer-events: none !important;
         }
+        a[href*="github.com"],
+        a[href*="streamlit.io/cloud"],
+        a[href*="share.streamlit.io"],
+        a[aria-label*="GitHub"],
+        a[aria-label*="github"],
+        a[aria-label*="Manage"],
+        a[aria-label*="manage"],
+        a[title*="GitHub"],
+        a[title*="Manage"],
+        button[aria-label*="GitHub"],
+        button[aria-label*="github"],
+        button[aria-label*="Manage"],
+        button[aria-label*="manage"],
+        button[aria-label*="Share"],
+        button[aria-label*="share"],
+        button[aria-label*="Fork"],
+        button[aria-label*="fork"],
+        button[title*="GitHub"],
+        button[title*="Manage"],
+        button[title*="Share"],
+        div[aria-label*="GitHub"],
+        div[aria-label*="Manage"],
+        div[title*="GitHub"],
+        div[title*="Manage"],
+        [class*="github"],
+        [class*="Github"],
+        [class*="deploy"],
+        [class*="Deploy"],
+        [class*="viewerBadge"],
+        [class*="stToolbar"],
+        [data-testid*="Github"],
+        [data-testid*="github"],
+        [data-testid*="Deploy"],
+        [data-testid*="deploy"],
+        [data-testid*="Toolbar"],
+        [data-testid*="toolbar"] {
+            display: none !important;
+            visibility: hidden !important;
+            width: 0 !important;
+            height: 0 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+        @media (max-width: 768px) {
+            body > div:last-child:not([data-testid="stAppViewContainer"]),
+            div[style*="position: fixed"][style*="bottom"],
+            div[style*="position:fixed"][style*="bottom"],
+            a[style*="position: fixed"],
+            button[style*="position: fixed"] {
+                display: none !important;
+                visibility: hidden !important;
+                pointer-events: none !important;
+            }
+        }
         .stApp {
             margin-top: 0 !important;
         }
