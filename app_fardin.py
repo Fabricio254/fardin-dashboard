@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from base64 import b64encode
 from io import BytesIO
@@ -29,6 +29,7 @@ def style_app() -> None:
     st.markdown(
         """
         <style>
+        /* === OCULTAR HEADER E MENU ADMINISTRATIVOS === */
         #MainMenu,
         footer,
         header,
@@ -39,6 +40,8 @@ def style_app() -> None:
         [data-testid="stDeployButton"],
         [data-testid="stAppDeployButton"],
         [data-testid="manage-app-button"],
+        [data-testid="stAppViewBlockContainer"] > [data-testid="stToolbar"],
+        [data-testid="stTheme"],
         .stDeployButton,
         .viewerBadge_container__1QSob,
         .viewerBadge_link__1S137,
@@ -46,52 +49,91 @@ def style_app() -> None:
             display: none !important;
             visibility: hidden !important;
             height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
+        /* === OCULTAR ELEMENTOS FIXOS NO RODAPÉ E CANTO INFERIOR === */
         div[style*="position: fixed"][style*="bottom"][style*="right"],
+        div[style*="position: fixed"][style*="bottom"],
+        div[style*="position:fixed"][style*="bottom"],
+        div[style*="position: fixed"][style*="top: auto"],
         a[style*="position: fixed"][style*="bottom"],
+        a[style*="position: fixed"],
         button[style*="position: fixed"][style*="bottom"],
+        button[style*="position: fixed"],
         iframe[title*="streamlit"],
-        iframe[src*="streamlit"] {
+        iframe[src*="streamlit"],
+        [style*="position:fixed"][style*="right"],
+        [style*="position: fixed"] button,
+        [style*="position: fixed"] a {
             display: none !important;
             visibility: hidden !important;
             pointer-events: none !important;
+            height: 0 !important;
+            width: 0 !important;
         }
+        /* === OCULTAR LINKS E BOTÕES ADMINISTRATIVOS === */
         a[href*="github.com"],
-        a[href*="streamlit.io/cloud"],
+        a[href*="streamlit.io"],
         a[href*="share.streamlit.io"],
+        a[href*="cloud.streamlit.app"],
         a[aria-label*="GitHub"],
         a[aria-label*="github"],
         a[aria-label*="Manage"],
         a[aria-label*="manage"],
+        a[aria-label*="Deploy"],
+        a[aria-label*="deploy"],
+        a[aria-label*="Share"],
+        a[aria-label*="share"],
+        a[aria-label*="Fork"],
+        a[aria-label*="fork"],
         a[title*="GitHub"],
         a[title*="Manage"],
+        a[title*="Deploy"],
+        a[title*="Share"],
+        a[title*="Fork"],
         button[aria-label*="GitHub"],
         button[aria-label*="github"],
         button[aria-label*="Manage"],
         button[aria-label*="manage"],
+        button[aria-label*="Deploy"],
+        button[aria-label*="deploy"],
         button[aria-label*="Share"],
         button[aria-label*="share"],
         button[aria-label*="Fork"],
         button[aria-label*="fork"],
         button[title*="GitHub"],
         button[title*="Manage"],
+        button[title*="Deploy"],
         button[title*="Share"],
+        button[title*="Fork"],
         div[aria-label*="GitHub"],
         div[aria-label*="Manage"],
+        div[aria-label*="Deploy"],
         div[title*="GitHub"],
         div[title*="Manage"],
+        div[title*="Deploy"] {
+            display: none !important;
+            visibility: hidden !important;
+            width: 0 !important;
+            height: 0 !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: 0 !important;
+        }
+        /* === OCULTAR POR CLASS NAMES ADMINISTRATIVAS === */
         [class*="github"],
         [class*="Github"],
         [class*="deploy"],
         [class*="Deploy"],
         [class*="viewerBadge"],
         [class*="stToolbar"],
-        [data-testid*="Github"],
-        [data-testid*="github"],
-        [data-testid*="Deploy"],
-        [data-testid*="deploy"],
-        [data-testid*="Toolbar"],
-        [data-testid*="toolbar"] {
+        [class*="stAppHeader"],
+        [class*="streamlit_badge"],
+        [class*="manage"],
+        [class*="Manage"] {
             display: none !important;
             visibility: hidden !important;
             width: 0 !important;
@@ -99,15 +141,46 @@ def style_app() -> None:
             opacity: 0 !important;
             pointer-events: none !important;
         }
+        /* === OCULTAR POR DATA-TESTID ADMINISTRATIVAS === */
+        [data-testid*="Github"],
+        [data-testid*="github"],
+        [data-testid*="Deploy"],
+        [data-testid*="deploy"],
+        [data-testid*="Toolbar"],
+        [data-testid*="toolbar"],
+        [data-testid*="stAppHeader"],
+        [data-testid*="manage"],
+        [data-testid="stStatusWidget"] {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            pointer-events: none !important;
+        }
+        /* === PROTEÇÃO: REEXIBIÇÃO DE ELEMENTOS OCULTADOS === */
+        [style*="display:block"][aria-label*="GitHub"],
+        [style*="display:flex"][aria-label*="GitHub"],
+        [style*="visibility:visible"][aria-label*="Manage"],
+        [style*="opacity:1"][title*="Deploy"] {
+            display: none !important;
+            visibility: hidden !important !important;
+            opacity: 0 !important !important;
+            pointer-events: none !important !important;
+        }
+        /* === RESPONSIVE: MOBILE/TABLET === */
         @media (max-width: 768px) {
             body > div:last-child:not([data-testid="stAppViewContainer"]),
             div[style*="position: fixed"][style*="bottom"],
             div[style*="position:fixed"][style*="bottom"],
             a[style*="position: fixed"],
-            button[style*="position: fixed"] {
+            button[style*="position: fixed"],
+            [data-testid*="stToolbar"],
+            [aria-label*="GitHub"],
+            [aria-label*="Manage"] {
                 display: none !important;
                 visibility: hidden !important;
                 pointer-events: none !important;
+                height: 0 !important;
+                width: 0 !important;
             }
         }
         .stApp {
