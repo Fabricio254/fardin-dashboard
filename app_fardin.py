@@ -17,6 +17,7 @@ PEDIDO_XLS = BASE_DIR / "Pedido.XLS"
 VENDA_XLS = BASE_DIR / "Venda.XLS"
 LOGO_PATH = BASE_DIR / "logo fardin.jpg"
 FAVICON_PATH = BASE_DIR / "favicon-fardin.png"
+_SENHA_COMPLETA = "zampa255"
 
 WorkbookSource = str | Path | bytes
 
@@ -927,9 +928,10 @@ def get_dashboard_password() -> str:
     if env_password:
         return env_password
     try:
-        return str(st.secrets.get("DASHBOARD_PASSWORD", "")).strip()
+        secret_password = str(st.secrets.get("DASHBOARD_PASSWORD", "")).strip()
     except Exception:
-        return ""
+        secret_password = ""
+    return secret_password or _SENHA_COMPLETA
 
 
 def require_password() -> None:
