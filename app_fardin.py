@@ -836,7 +836,15 @@ def render_tables(pedidos: pd.DataFrame, vendas: pd.DataFrame, metas: pd.DataFra
     st.dataframe(display_perf, width="stretch", hide_index=True)
 
     if not perf.empty:
-        fig = px.bar(perf, x="Vendedor", y=["Vendas", "Meta"], barmode="group", title="Vendas x Meta por vendedor")
+        fig = px.bar(
+            perf,
+            x="Vendedor",
+            y=["Vendas", "Meta"],
+            barmode="group",
+            title="Vendas x Meta por vendedor",
+            color_discrete_map={"Vendas": "#f6c445", "Meta": "#ef4444"},
+        )
+        fig.update_traces(marker_line_color="rgba(255,255,255,.22)", marker_line_width=1)
         fig.update_layout(legend_title_text="", yaxis_title="Valor", xaxis_title="")
         st.plotly_chart(fig, width="stretch")
 
@@ -845,6 +853,11 @@ def render_tables(pedidos: pd.DataFrame, vendas: pd.DataFrame, metas: pd.DataFra
     if not diario.empty:
         st.subheader("Vendas diarias")
         fig = px.line(diario, x="Data", y="Valor Total Liquido", markers=True)
+        fig.update_traces(
+            line_color="#2f8f46",
+            line_width=3,
+            marker=dict(size=8, color="#f6c445", line=dict(width=2, color="#ef4444")),
+        )
         fig.update_layout(yaxis_title="Valor vendido", xaxis_title="Data")
         st.plotly_chart(fig, width="stretch")
 
