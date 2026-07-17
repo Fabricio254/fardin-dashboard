@@ -998,13 +998,46 @@ def require_password() -> None:
             color: #e5e7eb;
             font-weight: 700;
         }
-        div[data-testid="stForm"] input {
-            min-height: 44px;
+        div[data-testid="stForm"] div[data-testid="stTextInput"] {
+            margin-bottom: 16px;
         }
-        div[data-testid="stForm"] button {
+        div[data-testid="stForm"] div[data-testid="stTextInput"] > div {
+            background: #ffffff !important;
+            border: 2px solid #94a3b8 !important;
+            border-radius: 8px !important;
+            min-height: 48px !important;
+            box-shadow: 0 0 0 3px rgba(239, 68, 68, .10);
+        }
+        div[data-testid="stForm"] div[data-testid="stTextInput"] > div:focus-within {
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, .20);
+        }
+        div[data-testid="stForm"] input {
+            min-height: 48px !important;
+            color: #0f172a !important;
+            background: #ffffff !important;
+            caret-color: #ef4444 !important;
+            font-size: 1rem !important;
+            font-weight: 700 !important;
+        }
+        div[data-testid="stForm"] input::placeholder {
+            color: #64748b !important;
+            opacity: 1 !important;
+            font-weight: 500 !important;
+        }
+        div[data-testid="stForm"] div[data-testid="stTextInput"] button {
+            color: #0f172a !important;
+            background: transparent !important;
+            border: 0 !important;
+            min-height: 44px !important;
+            width: 42px !important;
+            margin: 0 !important;
+        }
+        div[data-testid="stForm"] button[kind="primary"] {
             width: 100%;
-            min-height: 42px;
+            min-height: 44px;
             margin-top: 6px;
+            font-weight: 800;
         }
         @media (max-width: 640px) {
             .block-container { padding-top: 5vh !important; }
