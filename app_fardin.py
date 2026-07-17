@@ -113,6 +113,63 @@ def style_app() -> None:
         h2, h3 {
             letter-spacing: 0;
         }
+        section[data-testid="stSidebar"] h2 {
+            font-size: 1.05rem;
+            margin-bottom: .8rem;
+        }
+        .upload-heading {
+            margin: 1rem 0 .45rem;
+            color: #f8fafc;
+            font-size: .78rem;
+            font-weight: 800;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+        .upload-status {
+            margin: .45rem 0 1.05rem;
+            padding: 10px 12px;
+            border: 1px solid rgba(148, 163, 184, .22);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, .72);
+        }
+        .upload-status span {
+            display: block;
+            color: #94a3b8;
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .upload-status strong {
+            display: block;
+            margin-top: 3px;
+            color: #f8fafc;
+            font-size: .84rem;
+            line-height: 1.25;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .upload-status.ready {
+            border-color: rgba(34, 197, 94, .38);
+            background: linear-gradient(180deg, rgba(22, 101, 52, .20), rgba(15, 23, 42, .78));
+        }
+        section[data-testid="stSidebar"] div[data-testid="stFileUploader"] section {
+            min-height: 78px;
+            padding: 12px;
+            border: 1px dashed rgba(148, 163, 184, .32);
+            border-radius: 8px;
+            background: rgba(2, 6, 23, .42);
+        }
+        section[data-testid="stSidebar"] div[data-testid="stFileUploader"] section:hover {
+            border-color: rgba(248, 250, 252, .5);
+            background: rgba(15, 23, 42, .68);
+        }
+        section[data-testid="stSidebar"] div[data-testid="stFileUploader"] button {
+            border-radius: 7px;
+            border: 1px solid rgba(248, 250, 252, .18);
+            background: rgba(248, 250, 252, .08);
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -238,12 +295,40 @@ def load_vendas(source: WorkbookSource) -> pd.DataFrame:
 
 
 def source_selector(label: str, default_path: Path, key: str) -> tuple[WorkbookSource | None, str]:
-    upload = st.sidebar.file_uploader(label, type=["xls", "xlsx"], key=key)
+    st.markdown(f'<div class="upload-heading">{label}</div>', unsafe_allow_html=True)
+    upload = st.file_uploader(
+        f"Arquivo {label}",
+        type=["xls", "xlsx"],
+        key=key,
+        label_visibility="collapsed",
+    )
+
     if upload is not None:
-        return upload.getvalue(), upload.name
-    if default_path.exists():
-        return default_path, default_path.name
-    return None, "Aguardando arquivo"
+        source: WorkbookSource | None = upload.getvalue()
+        name = upload.name
+        status = "Selecionado"
+        status_class = "ready"
+    elif default_path.exists():
+        source = default_path
+        name = default_path.name
+        status = "Padrao local"
+        status_class = "ready"
+    else:
+        source = None
+        name = "Aguardando arquivo"
+        status = "Pendente"
+        status_class = ""
+
+    st.markdown(
+        f"""
+        <div class="upload-status {status_class}">
+          <span>{status}</span>
+          <strong>{name}</strong>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    return source, name
 
 
 def build_meta_editor(vendedores: list[str], total_vendido: float) -> tuple[float, pd.DataFrame]:
@@ -384,14 +469,12 @@ def render_tables(pedidos: pd.DataFrame, vendas: pd.DataFrame, metas: pd.DataFra
 
 
 def main() -> None:
+    style_app()
     with st.sidebar:
         st.markdown("## Arquivos")
         pedido_source, pedido_name = source_selector("Pedido", PEDIDO_XLS, "pedido_upload")
         venda_source, venda_name = source_selector("Venda", VENDA_XLS, "venda_upload")
-        st.caption(f"Pedido: {pedido_name}")
-        st.caption(f"Venda: {venda_name}")
 
-    style_app()
     if LOGO_PATH.exists():
         c_logo, c_title = st.columns([0.12, 0.88], vertical_alignment="center")
         c_logo.markdown(logo_html(LOGO_PATH), unsafe_allow_html=True)
@@ -436,5 +519,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 
