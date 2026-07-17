@@ -157,38 +157,49 @@ def style_app() -> None:
             pointer-events: none !important;
         }
         /* === BLOQUEIO SELETIVO: APENAS MANAGE APP + ÍCONES ADMINISTRATIVOS === */
-        /* REMOVER OVERLAY - estava bloqueando cliques! */
-        /* Ocultar apenas elementos com position: fixed no canto inferior direito */
-        div[style*="position: fixed"][style*="bottom: 0"][style*="right: 0"],
-        div[style*="position: fixed"][style*="bottom: 12px"],
-        div[style*="position: fixed"][style*="right: 12px"],
-        button[style*="position: fixed"][style*="bottom"],
-        button[style*="position: fixed"][style*="right"],
-        a[style*="position: fixed"][style*="bottom"],
-        a[style*="position: fixed"][style*="right"],
+        /* Criar overlay que bloqueia cliques na área do canto inferior */
+        body::after {
+            content: "";
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: 250px;
+            height: 100px;
+            background: transparent;
+            z-index: 99998 !important;
+            pointer-events: auto !important;
+        }
+        /* Ocultar elementos com position: fixed */
+        *[style*="position: fixed"],
+        div[style*="position: fixed"],
+        button[style*="position: fixed"],
+        a[style*="position: fixed"],
+        svg[style*="position: fixed"],
+        img[style*="position: fixed"] {
+            display: none !important;
+            visibility: hidden !important;
+        }
+        /* Ocultar SVG e IMG dentro de elementos fixed */
+        *[style*="position: fixed"] svg,
+        *[style*="position: fixed"] img,
+        *[style*="position: fixed"] button,
+        *[style*="position: fixed"] a {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
         /* Elementos administrativos específicos */
         button[aria-label*="Manage"],
         button[aria-label*="manage"],
         a[aria-label*="Manage"],
         a[aria-label*="manage"],
-        /* Remover elementos com menu/dialog administrative */
         [role="menu"] button,
-        [role="menu"] a,
-        [role="dialog"] button:not([data-testid*="close"]),
-        /* Proteger contra reexibição */
-        [style*="display:block"][aria-label*="Manage"],
-        [style*="visibility:visible"][aria-label*="Manage"] {
+        [role="menu"] a {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
             pointer-events: none !important;
-            height: 0 !important;
-            width: 0 !important;
-        }
-        /* Apenas ocultar, não remover elementos fixed */
-        *[style*="position: fixed"] {
-            display: none !important;
-            visibility: hidden !important;
         }
         /* === ÍCONES/BOTÕES CANTO SUPERIOR DIREITO === */
         header button,
@@ -449,52 +460,78 @@ def style_app() -> None:
         }
         </style>
         <script>
-        // Estratégia conservadora: remover APENAS Manage app e elementos administrativos específicos
-        function removeManageAppOnly() {
-            // 1. Remover por texto "Manage app"
+        // Estratégia conservadora mas melhorada: ocultar elementos no canto inferior
+        function hideAdminElements() {
+            // 1. Ocultar elementos com texto "Manage app"
             document.querySelectorAll('button, a, [role="button"]').forEach(el => {
                 const text = el.textContent?.trim() || '';
-                if (text === 'Manage app' || text.includes('Manage') && el.tagName === 'BUTTON') {
-                    try { el.style.display = 'none'; el.style.visibility = 'hidden'; } catch(e) {}
+                if (text === 'Manage app' || text === 'Manage') {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
                 }
             });
             
-            // 2. Remover elementos com aria-label contendo "Manage"
+            // 2. Ocultar por aria-label "Manage"
             document.querySelectorAll('[aria-label*="Manage"], [aria-label*="manage"]').forEach(el => {
-                try { el.style.display = 'none'; el.style.visibility = 'hidden'; } catch(e) {}
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
             });
             
-            // 3. Ocultar (não remover!) elementos com position: fixed
-            document.querySelectorAll('[style*="position: fixed"]').forEach(el => {
-                try { 
-                    el.style.display = 'none !important'; 
-                    el.style.visibility = 'hidden !important'; 
+            // 3. Ocultar elementos com position: fixed
+            document.querySelectorAll('[style*="position: fixed"], [style*="position:fixed"]').forEach(el => {
+                el.style.display = 'none !important';
+                el.style.visibility = 'hidden !important';
+                // Também ocultar filhos
+                el.querySelectorAll('*').forEach(child => {
+                    child.style.display = 'none';
+                    child.style.visibility = 'hidden';
+                });
+            });
+            
+            // 4. Detectar SVG/IMG no canto inferior direito e ocultar
+            document.querySelectorAll('svg, img').forEach(el => {
+                try {
+                    const rect = el.getBoundingClientRect();
+                    // Se está nos últimos 150px de altura e 150px de largura
+                    if (rect.bottom > (window.innerHeight - 150) && rect.right > (window.innerWidth - 150)) {
+                        el.style.display = 'none';
+                        el.style.visibility = 'hidden';
+                        el.style.opacity = '0';
+                        el.style.pointerEvents = 'none';
+                    }
                 } catch(e) {}
+            });
+            
+            // 5. Ocultar menus/dialogs administrativos
+            document.querySelectorAll('[role="menu"], [role="dialog"]').forEach(el => {
+                if (!el.textContent?.includes('Filter') && !el.textContent?.includes('Upload')) {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
+                }
             });
         }
         
-        // Executar imediatamente
-        removeManageAppOnly();
+        // Executar ao carregar
+        hideAdminElements();
         
         // Executar novamente com delays
-        setTimeout(removeManageAppOnly, 500);
-        setTimeout(removeManageAppOnly, 1000);
+        setTimeout(hideAdminElements, 300);
+        setTimeout(hideAdminElements, 800);
+        setTimeout(hideAdminElements, 1500);
         
-        // MutationObserver
+        // MutationObserver - monitora mudanças
         const observer = new MutationObserver(() => {
-            removeManageAppOnly();
+            hideAdminElements();
         });
         
         observer.observe(document.body, {
             childList: true,
             subtree: true,
-            attributes: true,
-            attributeOldValue: false,
-            characterData: false
+            attributes: true
         });
         
         // Cleanup periódico
-        setInterval(removeManageAppOnly, 500);
+        setInterval(hideAdminElements, 500);
         </script>
         """,
         unsafe_allow_html=True,
