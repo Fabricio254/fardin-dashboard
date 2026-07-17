@@ -23,6 +23,83 @@ st.set_page_config(
 )
 
 
+def style_app() -> None:
+    st.markdown(
+        """
+        <style>
+        .block-container {
+            padding-top: 2.25rem;
+            max-width: 1220px;
+        }
+        .fardin-header {
+            margin-bottom: 1.1rem;
+        }
+        .fardin-header h1 {
+            margin: 0;
+            font-size: 2.35rem;
+            line-height: 1.05;
+            letter-spacing: 0;
+        }
+        .kpi-card {
+            min-height: 132px;
+            padding: 18px 18px 16px;
+            border: 1px solid rgba(148, 163, 184, .22);
+            border-radius: 8px;
+            background:
+                linear-gradient(180deg, rgba(31, 41, 55, .95), rgba(15, 23, 42, .96));
+            box-shadow: 0 16px 34px rgba(0, 0, 0, .24);
+            position: relative;
+            overflow: hidden;
+        }
+        .kpi-card::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 3px;
+            background: var(--accent);
+        }
+        .kpi-label {
+            color: #a7b2c3;
+            font-size: .78rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .kpi-value {
+            margin-top: 14px;
+            color: #f8fafc;
+            font-size: clamp(1.28rem, 2.1vw, 1.82rem);
+            font-weight: 800;
+            line-height: 1.08;
+            letter-spacing: 0;
+        }
+        .kpi-note {
+            margin-top: 10px;
+            color: #8fa0b7;
+            font-size: .78rem;
+        }
+        .kpi-card.primary {
+            background:
+                linear-gradient(180deg, rgba(127, 29, 29, .42), rgba(15, 23, 42, .98)),
+                linear-gradient(180deg, rgba(31, 41, 55, .96), rgba(15, 23, 42, .96));
+        }
+        div[data-testid="stDataFrame"] {
+            border: 1px solid rgba(148, 163, 184, .18);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        h2, h3 {
+            letter-spacing: 0;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def workbook_source(source: WorkbookSource) -> BytesIO | str | Path:
     return BytesIO(source) if isinstance(source, bytes) else source
 
@@ -37,6 +114,20 @@ def pct(value: float | int | None) -> str:
     if value is None or pd.isna(value):
         value = 0
     return f"{float(value) * 100:,.1f}%".replace(",", "X").replace(".", ",")
+
+
+def kpi_card(label: str, value: str, note: str, accent: str, primary: bool = False) -> None:
+    class_name = "kpi-card primary" if primary else "kpi-card"
+    st.markdown(
+        f"""
+        <div class="{class_name}" style="--accent:{accent}">
+          <div class="kpi-label">{label}</div>
+          <div class="kpi-value">{value}</div>
+          <div class="kpi-note">{note}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def parse_money_series(series: pd.Series) -> pd.Series:
@@ -195,13 +286,20 @@ def render_kpis(pedidos: pd.DataFrame, vendas: pd.DataFrame, meta_total: float) 
     total_pedido = float(pedidos["Valor do Pedido"].sum())
     total_a_faturar = float(pedidos["Valor A Faturar"].sum())
     atingimento = total_vendido / meta_total if meta_total else 0.0
+    pedidos_qtd = int(pedidos["Pedido"].nunique()) if not pedidos.empty else 0
+    notas_qtd = int(vendas_validas["Nota Fiscal"].nunique()) if not vendas_validas.empty else 0
 
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Vendas validas", money(total_vendido))
-    c2.metric("Meta total", money(meta_total))
-    c3.metric("Atingimento", pct(atingimento))
-    c4.metric("Pedidos", money(total_pedido))
-    c5.metric("A faturar", money(total_a_faturar))
+    cols = st.columns(5)
+    with cols[0]:
+        kpi_card("Vendas validas", money(total_vendido), f"{notas_qtd} notas no periodo", "#22c55e", primary=True)
+    with cols[1]:
+        kpi_card("Meta total", money(meta_total), "Informada na barra lateral", "#f59e0b")
+    with cols[2]:
+        kpi_card("Atingimento", pct(atingimento), "Vendas validas / meta", "#38bdf8")
+    with cols[3]:
+        kpi_card("Pedidos", money(total_pedido), f"{pedidos_qtd} pedidos filtrados", "#a78bfa")
+    with cols[4]:
+        kpi_card("A faturar", money(total_a_faturar), "Saldo em pedidos", "#ef4444")
 
 
 def seller_performance(pedidos: pd.DataFrame, vendas: pd.DataFrame, metas: pd.DataFrame) -> pd.DataFrame:
@@ -269,12 +367,27 @@ def main() -> None:
         st.caption(f"Pedido: {pedido_name}")
         st.caption(f"Venda: {venda_name}")
 
+    style_app()
     if LOGO_PATH.exists():
         c_logo, c_title = st.columns([0.12, 0.88], vertical_alignment="center")
         c_logo.image(str(LOGO_PATH), width=90)
-        c_title.title("Dashboard Comercial - Fardin")
+        c_title.markdown(
+            """
+            <div class="fardin-header">
+              <h1>Dashboard Comercial - Fardin</h1>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
     else:
-        st.title("Dashboard Comercial - Fardin")
+        st.markdown(
+            """
+            <div class="fardin-header">
+              <h1>Dashboard Comercial - Fardin</h1>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     if pedido_source is None or venda_source is None:
         st.warning("Informe os arquivos Pedido.XLS e Venda.XLS para carregar o dashboard.")
@@ -299,4 +412,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
 
