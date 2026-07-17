@@ -24,3 +24,6 @@ _test_*.py
 # Planilhas de dados locais/clientes
 *.xlsx
 
+*.xls
+*.XLS
+backup-codigo-*/
