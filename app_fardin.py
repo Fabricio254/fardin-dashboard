@@ -3,10 +3,13 @@ from __future__ import annotations
 from base64 import b64encode
 from io import BytesIO
 from pathlib import Path
+import hmac
+import os
 
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -860,8 +863,105 @@ def render_tables(pedidos: pd.DataFrame, vendas: pd.DataFrame, metas: pd.DataFra
         st.dataframe(view, width="stretch", hide_index=True)
 
 
+def hide_streamlit_cloud_badge() -> None:
+    components.html(
+        """
+        <script>
+        function hideStreamlitCloudBadge() {
+            let doc = document;
+            let view = window;
+            try {
+                if (window.parent && window.parent.document) {
+                    doc = window.parent.document;
+                    view = window.parent;
+                }
+            } catch(e) {
+                doc = document;
+                view = window;
+            }
+            const coverId = 'fardin-streamlit-cloud-badge-cover';
+            let cover = doc.getElementById(coverId);
+            if (!cover) {
+                cover = doc.createElement('div');
+                cover.id = coverId;
+                doc.body.appendChild(cover);
+            }
+            cover.setAttribute(
+                'style',
+                'position:fixed;right:0;bottom:0;width:min(560px,100vw);height:84px;' +
+                'background:#0f172a;z-index:2147483647;pointer-events:auto;'
+            );
+
+            doc.querySelectorAll('body *').forEach((el) => {
+                const text = el.textContent || '';
+                if (!text.includes('Hosted with Streamlit') && !text.includes('Created by')) {
+                    return;
+                }
+                try {
+                    const rect = el.getBoundingClientRect();
+                    const isBadge =
+                        rect.bottom > view.innerHeight - 150 &&
+                        rect.right > view.innerWidth - 620 &&
+                        rect.width <= 700 &&
+                        rect.height <= 170;
+                    if (isBadge) {
+                        el.style.setProperty('display', 'none', 'important');
+                        el.style.setProperty('visibility', 'hidden', 'important');
+                        el.style.setProperty('opacity', '0', 'important');
+                        el.style.setProperty('pointer-events', 'none', 'important');
+                    }
+                } catch(e) {}
+            });
+        }
+        hideStreamlitCloudBadge();
+        setInterval(hideStreamlitCloudBadge, 300);
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
+
+def get_dashboard_password() -> str:
+    env_password = os.environ.get("DASHBOARD_PASSWORD", "").strip()
+    if env_password:
+        return env_password
+    try:
+        return str(st.secrets.get("DASHBOARD_PASSWORD", "")).strip()
+    except Exception:
+        return ""
+
+
+def require_password() -> None:
+    if st.session_state.get("dashboard_authenticated"):
+        return
+
+    expected_password = get_dashboard_password()
+    if not expected_password:
+        st.error("Senha do dashboard nao configurada. Configure DASHBOARD_PASSWORD nos secrets do Streamlit Cloud.")
+        st.stop()
+
+    if LOGO_PATH.exists():
+        st.markdown(logo_html(LOGO_PATH), unsafe_allow_html=True)
+    st.markdown("# Dashboard Comercial - Fardin")
+
+    with st.form("dashboard_login"):
+        password = st.text_input("Senha", type="password")
+        submitted = st.form_submit_button("Entrar")
+
+    if submitted:
+        if hmac.compare_digest(password, expected_password):
+            st.session_state["dashboard_authenticated"] = True
+            st.rerun()
+        st.error("Senha incorreta.")
+
+    st.stop()
+
+
 def main() -> None:
     style_app()
+    hide_streamlit_cloud_badge()
+    require_password()
     with st.sidebar:
         st.markdown("## Arquivos")
         pedido_source, pedido_name = source_selector("Pedido", PEDIDO_XLS, "pedido_upload")
