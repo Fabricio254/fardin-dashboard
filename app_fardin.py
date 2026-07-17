@@ -156,15 +156,64 @@ def style_app() -> None:
             height: 0 !important;
             pointer-events: none !important;
         }
+        /* === MENU DROPDOWN ADMINISTRATIVO (Manage App) === */
+        [data-testid="stMenuBtn"],
+        [role="menu"],
+        [role="menuitem"],
+        button[data-testid*="menu"],
+        button[aria-haspopup="menu"],
+        button[aria-haspopup="dialog"],
+        [aria-label*="menu"],
+        [aria-label*="Menu"],
+        .st-emotion-cache-1v0mbqg,
+        [class*="stMenuBtn"],
+        [class*="menuitem"],
+        [class*="stMenu"],
+        div[role="menu"] button,
+        div[role="menu"] a,
+        div[aria-label*="Settings"],
+        button[aria-label*="Settings"],
+        [title*="Settings"],
+        [data-testid*="settings"],
+        [data-testid*="Settings"] {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            height: 0 !important;
+            width: 0 !important;
+        }
+        /* === ÍCONES/BOTÕES CANTO SUPERIOR DIREITO === */
+        header button,
+        header [role="button"],
+        [data-testid="stAppHeader"] button,
+        [data-testid="stAppHeader"] a,
+        .stAppHeader button,
+        button[style*="position"][style*="top"][style*="right"],
+        button[style*="position"][style*="top: "],
+        div[style*="position"][style*="top"][style*="right"] button,
+        div[style*="position"][style*="top: 0"] button,
+        [data-testid*="stAppHeader"] * {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
         /* === PROTEÇÃO: REEXIBIÇÃO DE ELEMENTOS OCULTADOS === */
         [style*="display:block"][aria-label*="GitHub"],
         [style*="display:flex"][aria-label*="GitHub"],
         [style*="visibility:visible"][aria-label*="Manage"],
-        [style*="opacity:1"][title*="Deploy"] {
+        [style*="opacity:1"][title*="Deploy"],
+        [style*="display:block"][role="menu"],
+        [style*="display:flex"][role="menu"],
+        [style*="visibility:visible"][aria-label*="Settings"],
+        [style*="opacity:1"][data-testid*="menuBtn"] {
             display: none !important;
             visibility: hidden !important !important;
             opacity: 0 !important !important;
             pointer-events: none !important !important;
+            height: 0 !important;
+            width: 0 !important;
         }
         /* === RESPONSIVE: MOBILE/TABLET === */
         @media (max-width: 768px) {
