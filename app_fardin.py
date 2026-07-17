@@ -41,8 +41,8 @@ def style_app() -> None:
             letter-spacing: 0;
         }
         .kpi-card {
-            min-height: 132px;
-            padding: 18px 18px 16px;
+            min-height: 116px;
+            padding: 15px 15px 13px;
             border: 1px solid rgba(148, 163, 184, .22);
             border-radius: 8px;
             background:
@@ -60,7 +60,7 @@ def style_app() -> None:
         }
         .kpi-label {
             color: #a7b2c3;
-            font-size: .78rem;
+            font-size: .68rem;
             font-weight: 700;
             letter-spacing: .04em;
             text-transform: uppercase;
@@ -69,17 +69,18 @@ def style_app() -> None:
             text-overflow: ellipsis;
         }
         .kpi-value {
-            margin-top: 14px;
+            margin-top: 11px;
             color: #f8fafc;
-            font-size: clamp(1.28rem, 2.1vw, 1.82rem);
+            font-size: clamp(1.02rem, 1.38vw, 1.34rem);
             font-weight: 800;
-            line-height: 1.08;
+            line-height: 1.16;
             letter-spacing: 0;
+            white-space: nowrap;
         }
         .kpi-note {
-            margin-top: 10px;
+            margin-top: 8px;
             color: #8fa0b7;
-            font-size: .78rem;
+            font-size: .68rem;
         }
         .kpi-card.primary {
             background:
