@@ -187,6 +187,51 @@ def style_app() -> None:
             font-size: .78rem;
             font-weight: 700;
         }
+        .filter-heading {
+            margin: 1rem 0 .45rem;
+            color: #f8fafc;
+            font-size: .78rem;
+            font-weight: 800;
+            letter-spacing: .05em;
+            text-transform: uppercase;
+        }
+        .filter-summary {
+            margin: .45rem 0 .7rem;
+            padding: 9px 11px;
+            border: 1px solid rgba(56, 189, 248, .22);
+            border-radius: 8px;
+            background: rgba(15, 23, 42, .72);
+            color: #cbd5e1;
+            font-size: .76rem;
+        }
+        section[data-testid="stSidebar"] div[data-testid="stMultiSelect"] > div {
+            border-radius: 8px;
+        }
+        section[data-testid="stSidebar"] div[data-baseweb="select"] > div {
+            min-height: 98px;
+            border: 1px solid rgba(148, 163, 184, .24);
+            border-radius: 8px;
+            background: linear-gradient(180deg, rgba(15, 23, 42, .86), rgba(2, 6, 23, .68));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
+        }
+        section[data-testid="stSidebar"] div[data-baseweb="select"] > div:hover {
+            border-color: rgba(56, 189, 248, .38);
+        }
+        section[data-testid="stSidebar"] span[data-baseweb="tag"] {
+            max-width: 138px;
+            border: 1px solid rgba(56, 189, 248, .24);
+            border-radius: 6px;
+            background: rgba(30, 41, 59, .95);
+            color: #e5edf7;
+            font-size: .68rem;
+            font-weight: 700;
+        }
+        section[data-testid="stSidebar"] span[data-baseweb="tag"] span {
+            color: #e5edf7;
+        }
+        section[data-testid="stSidebar"] span[data-baseweb="tag"] svg {
+            color: #94a3b8;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -394,7 +439,17 @@ def apply_filters(pedidos: pd.DataFrame, vendas: pd.DataFrame) -> tuple[pd.DataF
         start = end = date_range
 
     vendedores = sorted(set(pedidos["Vendedor"]).union(vendas["Vendedor"]) - {""})
-    selected = st.sidebar.multiselect("Vendedor", vendedores, default=vendedores)
+    st.sidebar.markdown('<div class="filter-heading">Vendedores</div>', unsafe_allow_html=True)
+    selected = st.sidebar.multiselect(
+        "Vendedores",
+        vendedores,
+        default=vendedores,
+        label_visibility="collapsed",
+    )
+    st.sidebar.markdown(
+        f'<div class="filter-summary">{len(selected)} de {len(vendedores)} vendedores selecionados</div>',
+        unsafe_allow_html=True,
+    )
 
     start_ts = pd.Timestamp(start)
     end_ts = pd.Timestamp(end)
@@ -536,5 +591,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 
