@@ -433,7 +433,7 @@ def apply_filters(pedidos: pd.DataFrame, vendas: pd.DataFrame) -> tuple[pd.DataF
     max_date = all_dates.max().date()
 
     st.sidebar.markdown("### Filtros")
-    date_range = st.sidebar.date_input("Periodo de venda", value=(min_date, max_date), min_value=min_date, max_value=max_date)
+    date_range = st.sidebar.date_input("Periodo de venda", value=(min_date, max_date), min_value=min_date, max_value=max_date, format="DD/MM/YYYY")
     if isinstance(date_range, tuple) and len(date_range) == 2:
         start, end = date_range
     else:
@@ -594,5 +594,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
 
