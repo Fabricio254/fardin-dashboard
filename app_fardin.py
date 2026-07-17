@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from base64 import b64encode
 from io import BytesIO
@@ -163,10 +163,10 @@ def style_app() -> None:
             position: fixed;
             bottom: 0;
             right: 0;
-            width: 250px;
-            height: 100px;
-            background: transparent;
-            z-index: 99998 !important;
+            width: min(520px, 100vw);
+            height: 76px;
+            background: #0f172a;
+            z-index: 2147483647 !important;
             pointer-events: auto !important;
         }
         /* Ocultar elementos com position: fixed */
@@ -460,77 +460,95 @@ def style_app() -> None:
         }
         </style>
         <script>
-        // Estratégia conservadora mas melhorada: ocultar elementos no canto inferior
+        // Oculta elementos administrativos e o badge publico do Streamlit Cloud.
         function hideAdminElements() {
-            // 1. Ocultar elementos com texto "Manage app"
+            const hideElement = (el) => {
+                el.style.setProperty('display', 'none', 'important');
+                el.style.setProperty('visibility', 'hidden', 'important');
+                el.style.setProperty('opacity', '0', 'important');
+                el.style.setProperty('pointer-events', 'none', 'important');
+                el.style.setProperty('width', '0', 'important');
+                el.style.setProperty('height', '0', 'important');
+                el.style.setProperty('overflow', 'hidden', 'important');
+            };
+
             document.querySelectorAll('button, a, [role="button"]').forEach(el => {
                 const text = el.textContent?.trim() || '';
                 if (text === 'Manage app' || text === 'Manage') {
-                    el.style.display = 'none';
-                    el.style.visibility = 'hidden';
+                    hideElement(el);
                 }
             });
-            
-            // 2. Ocultar por aria-label "Manage"
-            document.querySelectorAll('[aria-label*="Manage"], [aria-label*="manage"]').forEach(el => {
-                el.style.display = 'none';
-                el.style.visibility = 'hidden';
-            });
-            
-            // 3. Ocultar elementos com position: fixed
+
+            document.querySelectorAll('[aria-label*="Manage"], [aria-label*="manage"]').forEach(hideElement);
+
             document.querySelectorAll('[style*="position: fixed"], [style*="position:fixed"]').forEach(el => {
-                el.style.display = 'none !important';
-                el.style.visibility = 'hidden !important';
-                // Também ocultar filhos
-                el.querySelectorAll('*').forEach(child => {
-                    child.style.display = 'none';
-                    child.style.visibility = 'hidden';
-                });
+                hideElement(el);
+                el.querySelectorAll('*').forEach(hideElement);
             });
-            
-            // 4. Detectar SVG/IMG no canto inferior direito e ocultar
+
+            document.querySelectorAll('body *').forEach(el => {
+                const text = el.textContent || '';
+                if (!text.includes('Created by') && !text.includes('Hosted with Streamlit')) {
+                    return;
+                }
+                try {
+                    const rect = el.getBoundingClientRect();
+                    const isBottomBadge =
+                        rect.bottom > window.innerHeight - 140 &&
+                        rect.right > window.innerWidth - 560 &&
+                        rect.width <= 620 &&
+                        rect.height <= 140;
+                    if (!isBottomBadge) {
+                        return;
+                    }
+
+                    let target = el;
+                    while (
+                        target.parentElement &&
+                        target.parentElement !== document.body &&
+                        target.parentElement.textContent?.includes('Hosted with Streamlit')
+                    ) {
+                        const parentRect = target.parentElement.getBoundingClientRect();
+                        if (parentRect.width > 700 || parentRect.height > 180) {
+                            break;
+                        }
+                        target = target.parentElement;
+                    }
+                    hideElement(target);
+                } catch(e) {}
+            });
+
             document.querySelectorAll('svg, img').forEach(el => {
                 try {
                     const rect = el.getBoundingClientRect();
-                    // Se está nos últimos 150px de altura e 150px de largura
                     if (rect.bottom > (window.innerHeight - 150) && rect.right > (window.innerWidth - 150)) {
-                        el.style.display = 'none';
-                        el.style.visibility = 'hidden';
-                        el.style.opacity = '0';
-                        el.style.pointerEvents = 'none';
+                        hideElement(el);
                     }
                 } catch(e) {}
             });
-            
-            // 5. Ocultar menus/dialogs administrativos
+
             document.querySelectorAll('[role="menu"], [role="dialog"]').forEach(el => {
                 if (!el.textContent?.includes('Filter') && !el.textContent?.includes('Upload')) {
-                    el.style.display = 'none';
-                    el.style.visibility = 'hidden';
+                    hideElement(el);
                 }
             });
         }
-        
-        // Executar ao carregar
+
         hideAdminElements();
-        
-        // Executar novamente com delays
         setTimeout(hideAdminElements, 300);
         setTimeout(hideAdminElements, 800);
         setTimeout(hideAdminElements, 1500);
-        
-        // MutationObserver - monitora mudanças
+
         const observer = new MutationObserver(() => {
             hideAdminElements();
         });
-        
+
         observer.observe(document.body, {
             childList: true,
             subtree: true,
             attributes: true
         });
-        
-        // Cleanup periódico
+
         setInterval(hideAdminElements, 500);
         </script>
         """,
