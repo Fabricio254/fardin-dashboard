@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+from base64 import b64encode
 from io import BytesIO
 from pathlib import Path
 
@@ -28,11 +29,28 @@ def style_app() -> None:
         """
         <style>
         .block-container {
-            padding-top: 2.25rem;
+            padding-top: 2.8rem;
             max-width: 1220px;
         }
         .fardin-header {
             margin-bottom: 1.1rem;
+        }
+        .logo-frame {
+            width: 96px;
+            height: 96px;
+            padding: 6px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, .06);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: visible;
+        }
+        .logo-frame img {
+            width: 84px;
+            height: 84px;
+            object-fit: contain;
+            display: block;
         }
         .fardin-header h1 {
             margin: 0;
@@ -129,6 +147,11 @@ def kpi_card(label: str, value: str, note: str, accent: str, primary: bool = Fal
         """,
         unsafe_allow_html=True,
     )
+
+
+def logo_html(path: Path) -> str:
+    encoded = b64encode(path.read_bytes()).decode("ascii")
+    return f'<div class="logo-frame"><img src="data:image/jpeg;base64,{encoded}" alt="Fardin"></div>'
 
 
 def parse_money_series(series: pd.Series) -> pd.Series:
@@ -371,7 +394,7 @@ def main() -> None:
     style_app()
     if LOGO_PATH.exists():
         c_logo, c_title = st.columns([0.12, 0.88], vertical_alignment="center")
-        c_logo.image(str(LOGO_PATH), width=90)
+        c_logo.markdown(logo_html(LOGO_PATH), unsafe_allow_html=True)
         c_title.markdown(
             """
             <div class="fardin-header">
@@ -413,6 +436,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 
 
