@@ -156,29 +156,41 @@ def style_app() -> None:
             height: 0 !important;
             pointer-events: none !important;
         }
-        /* === MANAGE APP - BLOQUEIO TOTAL === */
-        button[style*="bottom"][style*="right"],
-        button[style*="bottom"][style*="left"],
-        a[style*="bottom"][style*="right"],
-        a[style*="bottom"][style*="left"],
-        /* Elemento fixed no canto inferior */
-        button[style*="position: fixed"],
-        button[style*="position:fixed"],
-        a[style*="position: fixed"],
-        a[style*="position:fixed"],
-        div[style*="position: fixed"] button,
-        div[style*="position:fixed"] button,
-        /* Último botão em containers administrativos */
-        .stAppHeader button:last-child,
-        [data-testid="stAppHeader"] button:last-child,
-        /* Menu/Dropdown administrativo */
-        button[aria-label*="app"][aria-label*="manage"],
-        button[aria-label*="Manage"],
-        button[title*="Manage"],
-        button[class*="stActionButton"],
-        /* Bloquear qualquer overlay ou popover */
-        [role="dialog"] button,
-        [role="alertdialog"] button {
+        /* === BLOQUEIO TOTAL: MANAGE APP NO CANTO INFERIOR === */
+        /* Criar overlay invisível sobre a área onde o botão aparece */
+        body::before {
+            content: "";
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: 200px;
+            height: 80px;
+            background: transparent;
+            z-index: 999999 !important;
+            pointer-events: auto !important;
+        }
+        /* Ocultar absolutamente qualquer elemento no canto inferior direito */
+        body > button,
+        body > a,
+        body > div:last-child,
+        body > div:last-child button,
+        body > div:last-child a,
+        div[style*="position: fixed"][style*="bottom: 0"],
+        div[style*="position: fixed"][style*="right: 0"],
+        button[style*="position: fixed"][style*="bottom"],
+        button[style*="position: fixed"][style*="right"],
+        a[style*="position: fixed"][style*="bottom"],
+        a[style*="position: fixed"][style*="right"],
+        [style*="position:fixed"][style*="bottom:"],
+        [style*="position:fixed"][style*="right:"],
+        /* Elemento pai do Manage app */
+        div[style*="bottom: auto"],
+        div[style*="right: 12px"],
+        div[style*="bottom: 12px"],
+        button ~ a,
+        button[aria-label*="manage"],
+        /* Seletor genérico agressivo para fixed positioning */
+        *[style*="position: fixed"] {
             display: none !important;
             visibility: hidden !important;
             opacity: 0 !important;
@@ -187,6 +199,14 @@ def style_app() -> None:
             width: 0 !important;
             margin: 0 !important;
             padding: 0 !important;
+            border: none !important;
+            clip: rect(0, 0, 0, 0) !important;
+            clip-path: polygon(0 0, 0 0, 0 0) !important;
+        }
+        /* Máximo cuidado: remover display flex/block se element tem fixed positioning */
+        div[style*="position: fixed"] {
+            display: none !important !important;
+            visibility: hidden !important !important;
         }
         /* === ÍCONES/BOTÕES CANTO SUPERIOR DIREITO === */
         header button,
@@ -447,44 +467,58 @@ def style_app() -> None:
         }
         </style>
         <script>
-        // Remover botão "Manage app" e qualquer elemento administrativo
+        // Estratégia agressiva: remover Manage app e bloquear recriação
         function removeManageApp() {
-            // Remover por texto
-            const buttons = document.querySelectorAll('button, a, [role="button"]');
-            buttons.forEach(btn => {
-                const text = btn.textContent?.toLowerCase() || '';
-                if (text.includes('manage') || text.includes('app') || text.includes('settings')) {
-                    btn.style.display = 'none !important';
-                    btn.style.visibility = 'hidden !important';
-                    btn.style.pointerEvents = 'none !important';
-                    btn.remove();
+            // 1. Procurar por qualquer elemento contendo "Manage app"
+            document.querySelectorAll('*').forEach(el => {
+                if (el.textContent?.includes('Manage app') || 
+                    el.textContent?.includes('Manage') && el.tagName === 'BUTTON' ||
+                    el.innerText?.includes('Manage app')) {
+                    el.parentElement?.removeChild(el);
                 }
             });
             
-            // Remover elementos com classe ou data-testid administrativos
-            const adminElements = document.querySelectorAll(
-                '[data-testid*="menu"], [data-testid*="settings"], [role="menu"], [role="dialog"]'
-            );
-            adminElements.forEach(el => {
-                if (!el.textContent?.toLowerCase().includes('filter') && 
-                    !el.textContent?.toLowerCase().includes('upload')) {
-                    el.style.display = 'none !important';
+            // 2. Remover todos os elementos com position: fixed no canto inferior direito
+            document.querySelectorAll('[style*="position: fixed"], [style*="position:fixed"]').forEach(el => {
+                const style = el.getAttribute('style') || '';
+                if (style.includes('bottom') || style.includes('right') || 
+                    el.getBoundingClientRect().bottom > window.innerHeight - 100) {
+                    el.remove();
+                }
+            });
+            
+            // 3. Bloquear elementos administrativos
+            document.querySelectorAll('[role="menu"], [role="dialog"], [data-testid*="menu"]').forEach(el => {
+                if (!el.textContent?.includes('Filter') && !el.textContent?.includes('Upload')) {
                     el.remove();
                 }
             });
         }
         
-        // Executar ao carregar
+        // Executar imediatamente
         removeManageApp();
         
-        // Monitorar alterações (MutationObserver)
-        const observer = new MutationObserver(() => removeManageApp());
-        observer.observe(document.body, { 
-            childList: true, 
-            subtree: true, 
-            attributes: true,
-            attributeFilter: ['style', 'class', 'data-testid']
+        // Executar novamente após 500ms (aguardar render)
+        setTimeout(removeManageApp, 500);
+        setTimeout(removeManageApp, 1000);
+        setTimeout(removeManageApp, 2000);
+        
+        // MutationObserver agressivo: monitorar tudo
+        const observer = new MutationObserver(() => {
+            removeManageApp();
         });
+        
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: true,
+            attributeFilter: ['style', 'class', 'data-testid'],
+            attributeOldValue: false,
+            characterData: false
+        });
+        
+        // Cleanup periódico a cada 250ms
+        setInterval(removeManageApp, 250);
         </script>
         """,
         unsafe_allow_html=True,

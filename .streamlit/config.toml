@@ -4,17 +4,25 @@ showErrorDetails = false
 sidebarState = "expanded"
 showSidebarNavigation = false
 themeBase = "dark"
+showMenuItems = false
 
 [logger]
-level = "warning"
+level = "critical"
 
 [browser]
 gatherUsageStats = false
+serverAddress = "localhost"
 
 [server]
 headless = true
 enableXsrfProtection = true
 maxUploadSize = 50
+runOnSave = false
+useServerTime = true
+
+[ui]
+hideTopBar = true
+hideFooter = true
 
 [theme]
 base = "dark"
