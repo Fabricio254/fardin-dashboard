@@ -154,21 +154,38 @@ def style_app() -> None:
             border-color: rgba(34, 197, 94, .38);
             background: linear-gradient(180deg, rgba(22, 101, 52, .20), rgba(15, 23, 42, .78));
         }
+        section[data-testid="stSidebar"] div[data-testid="stFileUploader"] {
+            margin-bottom: .35rem;
+        }
         section[data-testid="stSidebar"] div[data-testid="stFileUploader"] section {
-            min-height: 78px;
-            padding: 12px;
-            border: 1px dashed rgba(148, 163, 184, .32);
+            min-height: 52px;
+            padding: 10px 12px;
+            border: 1px solid rgba(148, 163, 184, .24);
             border-radius: 8px;
-            background: rgba(2, 6, 23, .42);
+            background: linear-gradient(180deg, rgba(15, 23, 42, .78), rgba(2, 6, 23, .55));
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, .04);
         }
         section[data-testid="stSidebar"] div[data-testid="stFileUploader"] section:hover {
-            border-color: rgba(248, 250, 252, .5);
-            background: rgba(15, 23, 42, .68);
+            border-color: rgba(248, 250, 252, .42);
+            background: rgba(15, 23, 42, .82);
+        }
+        section[data-testid="stSidebar"] div[data-testid="stFileUploader"] section > div:first-child {
+            display: none;
+        }
+        section[data-testid="stSidebar"] div[data-testid="stFileUploader"] small {
+            display: none;
+        }
+        section[data-testid="stSidebar"] div[data-testid="stFileUploader"] [data-testid="stFileUploaderFile"] {
+            display: none;
         }
         section[data-testid="stSidebar"] div[data-testid="stFileUploader"] button {
+            min-height: 32px;
             border-radius: 7px;
             border: 1px solid rgba(248, 250, 252, .18);
             background: rgba(248, 250, 252, .08);
+            color: #f8fafc;
+            font-size: .78rem;
+            font-weight: 700;
         }
         </style>
         """,
@@ -519,4 +536,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
 
