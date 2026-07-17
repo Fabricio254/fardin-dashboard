@@ -47,6 +47,15 @@ def style_app() -> None:
             visibility: hidden !important;
             height: 0 !important;
         }
+        div[style*="position: fixed"][style*="bottom"][style*="right"],
+        a[style*="position: fixed"][style*="bottom"],
+        button[style*="position: fixed"][style*="bottom"],
+        iframe[title*="streamlit"],
+        iframe[src*="streamlit"] {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
         .stApp {
             margin-top: 0 !important;
         }
