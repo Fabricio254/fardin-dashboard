@@ -985,9 +985,57 @@ def render_table(df: pd.DataFrame, **kwargs) -> None:
         unsafe_allow_html=True,
     )
 
-def filter_data(daily: pd.DataFrame, sellers: pd.DataFrame, families: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def seller_goal_table(sellers: pd.DataFrame) -> pd.DataFrame:
+    if sellers.empty:
+        return pd.DataFrame(columns=["Vendedor/canal", "Realizado PV", "Meta"])
+
+    seller_actual = sellers.groupby("vendedor", as_index=False)["entrada_pv"].sum()
+    if "meta_vendedor_mes" in sellers.columns:
+        seller_defaults = (
+            sellers.drop_duplicates(["mes_ref", "vendedor"])
+            .groupby("vendedor", as_index=False)["meta_vendedor_mes"]
+            .sum()
+        )
+    else:
+        seller_defaults = pd.DataFrame({"vendedor": seller_actual["vendedor"], "meta_vendedor_mes": 0.0})
+
+    goal_table = seller_actual.merge(seller_defaults, on="vendedor", how="left").fillna(0)
+    goal_table = goal_table.rename(
+        columns={
+            "vendedor": "Vendedor/canal",
+            "entrada_pv": "Realizado PV",
+            "meta_vendedor_mes": "Meta",
+        }
+    )
+    return goal_table.sort_values("Realizado PV", ascending=False).reset_index(drop=True)
+
+
+def render_sidebar_seller_goals(sellers: pd.DataFrame, key_suffix: str) -> pd.DataFrame:
+    st.markdown("### Metas")
+    if sellers.empty:
+        st.caption("Sem vendedores/canais no período.")
+        return seller_goal_table(sellers)
+
+    goals = seller_goal_table(sellers)
+    edited = st.data_editor(
+        goals[["Vendedor/canal", "Realizado PV", "Meta"]],
+        use_container_width=True,
+        hide_index=True,
+        disabled=["Vendedor/canal", "Realizado PV"],
+        column_config={
+            "Realizado PV": st.column_config.NumberColumn(format="R$ %.2f"),
+            "Meta": st.column_config.NumberColumn(format="R$ %.2f", min_value=0.0, step=1000.0),
+        },
+        key=f"sidebar_seller_goals_editor_{key_suffix}",
+    )
+    edited["Meta"] = pd.to_numeric(edited["Meta"], errors="coerce").fillna(0.0)
+    st.caption(f"Meta total: {money(float(edited['Meta'].sum()))}")
+    return edited
+
+
+def filter_data(daily: pd.DataFrame, sellers: pd.DataFrame, families: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     if daily.empty:
-        return daily, sellers, families
+        return daily, sellers, families, seller_goal_table(sellers)
 
     st.session_state["_demo_month_blocked"] = False
     min_date = daily["data"].min().date()
@@ -1026,17 +1074,22 @@ def filter_data(daily: pd.DataFrame, sellers: pd.DataFrame, families: pd.DataFra
             month_ref.empty or (int(month_ref.iloc[0].year), int(month_ref.iloc[0].month)) not in DEMO_ALLOWED_MONTHS
         ):
             st.session_state["_demo_month_blocked"] = True
-            return daily.iloc[0:0].copy(), sellers.iloc[0:0].copy(), families.iloc[0:0].copy()
+            return daily.iloc[0:0].copy(), sellers.iloc[0:0].copy(), families.iloc[0:0].copy(), seller_goal_table(sellers.iloc[0:0].copy())
         filtered_daily = filtered_daily[filtered_daily["mes"] == selected_month]
         filtered_sellers = filtered_sellers[filtered_sellers["mes"] == selected_month]
         filtered_families = filtered_families[filtered_families["mes"] == selected_month]
     elif is_demo_access():
         st.session_state["_demo_month_blocked"] = True
-        return daily.iloc[0:0].copy(), sellers.iloc[0:0].copy(), families.iloc[0:0].copy()
+        return daily.iloc[0:0].copy(), sellers.iloc[0:0].copy(), families.iloc[0:0].copy(), seller_goal_table(sellers.iloc[0:0].copy())
 
     if only_business_days:
         filtered_daily = filtered_daily[filtered_daily["dia_util"] == 1]
         filtered_sellers = filtered_sellers[filtered_sellers["data"].isin(filtered_daily["data"])]
+
+    goals_source = filtered_sellers.copy()
+    key_suffix = f"{selected_month}_{start:%Y%m%d}_{end:%Y%m%d}_{int(only_business_days)}"
+    with st.sidebar:
+        sidebar_seller_goals = render_sidebar_seller_goals(goals_source, key_suffix)
 
     if selected_seller != "Todos":
         seller_dates = filtered_sellers.loc[
@@ -1045,11 +1098,14 @@ def filter_data(daily: pd.DataFrame, sellers: pd.DataFrame, families: pd.DataFra
         ]
         filtered_sellers = filtered_sellers[filtered_sellers["vendedor"] == selected_seller]
         filtered_daily = filtered_daily[filtered_daily["data"].isin(seller_dates)]
+        sidebar_seller_goals = sidebar_seller_goals[
+            sidebar_seller_goals["Vendedor/canal"] == selected_seller
+        ].copy()
 
     if selected_family != "Todas" and not filtered_families.empty:
         filtered_families = filtered_families[filtered_families["familia"] == selected_family]
 
-    return filtered_daily, filtered_sellers, filtered_families
+    return filtered_daily, filtered_sellers, filtered_families, sidebar_seller_goals
 
 def render_overview(daily: pd.DataFrame, sellers: pd.DataFrame, meta_fardin: pd.DataFrame) -> None:
     if daily.empty:
@@ -1094,63 +1150,25 @@ def render_overview(daily: pd.DataFrame, sellers: pd.DataFrame, meta_fardin: pd.
         metric_card("Meta x real Fardin 2026", pct(realised / target if target else 0), f"{money(realised)} realizado")
 
 
-def render_daily_goals(daily: pd.DataFrame, sellers: pd.DataFrame, families: pd.DataFrame) -> None:
+def render_daily_goals(daily: pd.DataFrame, sellers: pd.DataFrame, families: pd.DataFrame, seller_goals: pd.DataFrame) -> None:
     latest_by_month = daily.sort_values("data").groupby("mes_ref", as_index=False).tail(1)
-    default_total_goal = float(latest_by_month["meta_mes"].sum()) if not latest_by_month.empty else 0.0
     realised_total = float(latest_by_month["faturamento_acumulado"].sum()) if not latest_by_month.empty else 0.0
-
-    if "daily_manual_total_goal" not in st.session_state:
-        st.session_state["daily_manual_total_goal"] = default_total_goal
+    total_goal = float(seller_goals["Meta"].sum()) if not seller_goals.empty else 0.0
 
     st.markdown("#### Metas e atingimento")
     col_goal, col_result, col_pct = st.columns(3)
     with col_goal:
-        total_goal = st.number_input(
-            "Meta total do período",
-            min_value=0.0,
-            step=1000.0,
-            format="%.2f",
-            key="daily_manual_total_goal",
-        )
+        metric_card("Meta total do período", money(total_goal), "Soma das metas por vendedor/canal")
     total_pct = realised_total / total_goal if total_goal else 0.0
     with col_result:
         metric_card("Realizado total", money(realised_total), "Faturamento NF acumulado")
     with col_pct:
         metric_card("Atingimento total", pct(total_pct), money(realised_total - total_goal) + " de gap")
 
-    if sellers.empty:
+    if seller_goals.empty:
         st.info("Sem vendas por vendedor/canal no período para calcular metas individuais.")
     else:
-        seller_actual = sellers.groupby("vendedor", as_index=False)["entrada_pv"].sum()
-        if "meta_vendedor_mes" in sellers.columns:
-            seller_defaults = (
-                sellers.drop_duplicates(["mes_ref", "vendedor"])
-                .groupby("vendedor", as_index=False)["meta_vendedor_mes"]
-                .sum()
-            )
-        else:
-            seller_defaults = pd.DataFrame({"vendedor": seller_actual["vendedor"], "meta_vendedor_mes": 0.0})
-
-        goal_table = seller_actual.merge(seller_defaults, on="vendedor", how="left").fillna(0)
-        goal_table = goal_table.rename(
-            columns={
-                "vendedor": "Vendedor/canal",
-                "entrada_pv": "Realizado PV",
-                "meta_vendedor_mes": "Meta",
-            }
-        )
-        goal_table = goal_table.sort_values("Realizado PV", ascending=False)
-        edited = st.data_editor(
-            goal_table[["Vendedor/canal", "Realizado PV", "Meta"]],
-            use_container_width=True,
-            hide_index=True,
-            disabled=["Vendedor/canal", "Realizado PV"],
-            column_config={
-                "Realizado PV": st.column_config.NumberColumn(format="R$ %.2f"),
-                "Meta": st.column_config.NumberColumn(format="R$ %.2f", min_value=0.0, step=1000.0),
-            },
-            key="daily_seller_goals_editor",
-        )
+        edited = seller_goals.copy()
         edited["% ating."] = np.where(edited["Meta"] > 0, edited["Realizado PV"] / edited["Meta"], 0)
         edited["Gap"] = edited["Realizado PV"] - edited["Meta"]
         render_table(
@@ -1211,7 +1229,7 @@ def render_daily_goals(daily: pd.DataFrame, sellers: pd.DataFrame, families: pd.
         },
     )
 
-def render_daily_tab(daily: pd.DataFrame, sellers: pd.DataFrame, metas: pd.DataFrame, families: pd.DataFrame) -> None:
+def render_daily_tab(daily: pd.DataFrame, sellers: pd.DataFrame, metas: pd.DataFrame, families: pd.DataFrame, seller_goals: pd.DataFrame) -> None:
     st.subheader("Resumo diário de vendas")
     st.markdown('<div class="section-note">Informações vindas das abas mensais do arquivo de Resumo Diário.</div>', unsafe_allow_html=True)
 
@@ -1219,7 +1237,7 @@ def render_daily_tab(daily: pd.DataFrame, sellers: pd.DataFrame, metas: pd.DataF
         st.info("Sem dados no período.")
         return
 
-    render_daily_goals(daily, sellers, families)
+    render_daily_goals(daily, sellers, families, seller_goals)
 
     by_day = daily.sort_values("data")
     fig = px.bar(
@@ -1726,7 +1744,7 @@ def main() -> None:
         st.exception(exc)
         st.stop()
 
-    filtered_daily, filtered_sellers, filtered_families = filter_data(daily, sellers, family_performance)
+    filtered_daily, filtered_sellers, filtered_families, seller_goals = filter_data(daily, sellers, family_performance)
 
     if is_demo_access() and st.session_state.get("_demo_month_blocked"):
         render_development_notice("Mes em desenvolvimento")
@@ -1745,7 +1763,7 @@ def main() -> None:
         ]
     )
     with tab_daily:
-        render_daily_tab(filtered_daily, filtered_sellers, metas, filtered_families)
+        render_daily_tab(filtered_daily, filtered_sellers, metas, filtered_families, seller_goals)
     with tab_sellers:
         render_seller_tab(filtered_sellers)
     with tab_goals:
