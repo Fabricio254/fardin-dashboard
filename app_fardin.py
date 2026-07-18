@@ -20,6 +20,35 @@ ALFA_LOGO_PATH = BASE_DIR / "Logo Alfa.jpg"
 _SENHA_COMPLETA = "zampa255"
 _SENHA_DEMO = "zampa"
 DEMO_ALLOWED_MONTHS = {(2026, 5), (2026, 6), (2026, 7)}
+FARDIN_COLORS = {
+    "gold": "#FBCA2E",
+    "light_gold": "#FCD85A",
+    "dark_gold": "#E8AE2D",
+    "wine": "#872628",
+    "dark_wine": "#741F1C",
+    "green": "#2B6E23",
+    "cream": "#F5EDDD",
+}
+FARDIN_COLOR_SEQUENCE = [
+    FARDIN_COLORS["gold"],
+    FARDIN_COLORS["wine"],
+    FARDIN_COLORS["green"],
+    FARDIN_COLORS["light_gold"],
+    FARDIN_COLORS["dark_wine"],
+    FARDIN_COLORS["dark_gold"],
+]
+FARDIN_INDICATOR_COLORS = {
+    "realizado_familia": FARDIN_COLORS["gold"],
+    "faturamento_acumulado": FARDIN_COLORS["gold"],
+    "total": FARDIN_COLORS["gold"],
+    "total_real": FARDIN_COLORS["gold"],
+    "real_vendas": FARDIN_COLORS["gold"],
+    "meta_familia": FARDIN_COLORS["wine"],
+    "meta_mes": FARDIN_COLORS["wine"],
+    "meta": FARDIN_COLORS["wine"],
+    "total_meta": FARDIN_COLORS["wine"],
+    "base_vendas": FARDIN_COLORS["wine"],
+}
 
 # Fallback para os nomes originais com acento, usados nos arquivos recebidos.
 if not RESUMO_XLSX.exists():
@@ -918,6 +947,7 @@ def metric_card(label: str, value: str, delta: str | None = None) -> None:
 
 
 def apply_chart_theme(fig):
+    fig.update_layout(colorway=FARDIN_COLOR_SEQUENCE)
     if st.session_state.get("_theme") == "light":
         fig.update_layout(
             template="plotly_white",
@@ -1207,6 +1237,7 @@ def render_daily_goals(daily: pd.DataFrame, sellers: pd.DataFrame, families: pd.
         barmode="group",
         title="Famílias de produtos - meta x realizado",
         labels={"value": "R$", "familia": "Família", "variable": "Indicador"},
+        color_discrete_map=FARDIN_INDICATOR_COLORS,
     )
     plot_chart(fig_family, use_container_width=True)
     render_table(
@@ -1252,7 +1283,7 @@ def render_daily_tab(daily: pd.DataFrame, sellers: pd.DataFrame, metas: pd.DataF
         y="faturamento_realizado",
         title=f"Faturamento realizado por dia - {chart_month}" if chart_month else "Faturamento realizado por dia",
         labels={"data": "Data", "faturamento_realizado": "Faturamento NF"},
-        color_discrete_sequence=["#38bdf8"],
+        color_discrete_sequence=[FARDIN_COLORS["gold"]],
     )
     fig.update_xaxes(tickformat="%d/%m/%Y")
     plot_chart(fig, use_container_width=True)
@@ -1271,6 +1302,7 @@ def render_daily_tab(daily: pd.DataFrame, sellers: pd.DataFrame, metas: pd.DataF
             barmode="group",
             title="Meta x realizado por mês",
             labels={"value": "R$", "variable": "Indicador"},
+            color_discrete_map=FARDIN_INDICATOR_COLORS,
         )
         plot_chart(fig_month, use_container_width=True)
     with col2:
@@ -1354,6 +1386,7 @@ def render_seller_tab(sellers: pd.DataFrame) -> None:
             orientation="h",
             title="Ranking de entrada PV por vendedor/canal",
             labels={"entrada_pv": "Entrada PV", "vendedor": ""},
+            color_discrete_sequence=[FARDIN_COLORS["gold"]],
         )
         fig.update_layout(yaxis={"categoryorder": "total ascending"})
         plot_chart(fig, use_container_width=True)
@@ -1364,6 +1397,7 @@ def render_seller_tab(sellers: pd.DataFrame) -> None:
             values="entrada_pv",
             title="Participação na entrada PV",
             hole=0.45,
+            color_discrete_sequence=FARDIN_COLOR_SEQUENCE,
         )
         plot_chart(fig_pie, use_container_width=True)
 
@@ -1375,6 +1409,7 @@ def render_seller_tab(sellers: pd.DataFrame) -> None:
         color="vendedor",
         title="Entrada PV por mês e vendedor/canal",
         labels={"entrada_pv": "Entrada PV", "mes": "Mês"},
+        color_discrete_sequence=FARDIN_COLOR_SEQUENCE,
     )
     plot_chart(fig_month, use_container_width=True)
 
@@ -1408,6 +1443,7 @@ def render_goals_tab(meta_global: pd.DataFrame, meta_fardin: pd.DataFrame, evo_g
             barmode="group",
             title="Global - meta x realizado",
             labels={"value": "R$", "variable": "Indicador"},
+            color_discrete_map=FARDIN_INDICATOR_COLORS,
         )
         plot_chart(fig_global, use_container_width=True)
     with col2:
@@ -1418,6 +1454,7 @@ def render_goals_tab(meta_global: pd.DataFrame, meta_fardin: pd.DataFrame, evo_g
             barmode="group",
             title="Fardin - meta x realizado",
             labels={"value": "R$", "variable": "Indicador"},
+            color_discrete_map=FARDIN_INDICATOR_COLORS,
         )
         plot_chart(fig_fardin, use_container_width=True)
 
@@ -1429,6 +1466,7 @@ def render_goals_tab(meta_global: pd.DataFrame, meta_fardin: pd.DataFrame, evo_g
             y=["fardin", "privaty_label", "terceiros"],
             title="Global por categoria de vendas",
             labels={"value": "R$", "variable": "Categoria"},
+            color_discrete_sequence=FARDIN_COLOR_SEQUENCE,
         )
         plot_chart(fig_cat, use_container_width=True)
     with col4:
@@ -1438,6 +1476,7 @@ def render_goals_tab(meta_global: pd.DataFrame, meta_fardin: pd.DataFrame, evo_g
             y=["representantes_real", "doces_fardin_real", "wilson_real"],
             title="Fardin por grupo",
             labels={"value": "R$", "variable": "Grupo"},
+            color_discrete_sequence=FARDIN_COLOR_SEQUENCE,
         )
         plot_chart(fig_rep, use_container_width=True)
 
@@ -1445,9 +1484,9 @@ def render_goals_tab(meta_global: pd.DataFrame, meta_fardin: pd.DataFrame, evo_g
     evo_fardin_long = evo_fardin.melt(id_vars=["mes"], value_vars=["base_vendas", "real_vendas"], var_name="periodo", value_name="vendas")
     col5, col6 = st.columns(2)
     with col5:
-        plot_chart(px.line(evo_global_long, x="mes", y="vendas", color="periodo", markers=True, title="Evolução GLOBAL 2025 x 2026"), use_container_width=True)
+        plot_chart(px.line(evo_global_long, x="mes", y="vendas", color="periodo", markers=True, title="Evolução GLOBAL 2025 x 2026", color_discrete_map=FARDIN_INDICATOR_COLORS), use_container_width=True)
     with col6:
-        plot_chart(px.line(evo_fardin_long, x="mes", y="vendas", color="periodo", markers=True, title="Evolução FARDIN 2025 x 2026"), use_container_width=True)
+        plot_chart(px.line(evo_fardin_long, x="mes", y="vendas", color="periodo", markers=True, title="Evolução FARDIN 2025 x 2026", color_discrete_map=FARDIN_INDICATOR_COLORS), use_container_width=True)
 
     st.markdown("#### Tabela - Meta x Real Global")
     render_table(meta_global, use_container_width=True, hide_index=True)
@@ -1468,6 +1507,7 @@ def render_history_tab(hist_pf: pd.DataFrame, hist_geral: pd.DataFrame, hist_rep
             color="familia",
             title="Faturamento por família",
             labels={"valor": "R$", "mes": "Mês"},
+            color_discrete_sequence=FARDIN_COLOR_SEQUENCE,
         )
         plot_chart(fig_family, use_container_width=True)
 
@@ -1481,6 +1521,7 @@ def render_history_tab(hist_pf: pd.DataFrame, hist_geral: pd.DataFrame, hist_rep
                 markers=True,
                 title="% de atingimento por família",
                 labels={"valor": "% atingimento", "mes": "Mês"},
+                color_discrete_sequence=FARDIN_COLOR_SEQUENCE,
             )
             plot_chart(fig_ating, use_container_width=True)
 
@@ -1488,12 +1529,12 @@ def render_history_tab(hist_pf: pd.DataFrame, hist_geral: pd.DataFrame, hist_rep
     with col1:
         if not hist_geral.empty:
             fat = hist_geral[hist_geral["indicador"].eq("Faturamento")]
-            plot_chart(px.bar(fat, x="mes", y="valor", title="Histórico geral - faturamento"), use_container_width=True)
+            plot_chart(px.bar(fat, x="mes", y="valor", title="Histórico geral - faturamento", color_discrete_sequence=[FARDIN_COLORS["gold"]]), use_container_width=True)
     with col2:
         if not hist_reps.empty:
             nf = hist_reps[hist_reps["indicador"].eq("Faturamento (NF)")].copy()
             nf = nf[nf["valor"] > 0]
-            plot_chart(px.bar(nf, x="mes", y="valor", color="representante", title="Faturamento NF por representante"), use_container_width=True)
+            plot_chart(px.bar(nf, x="mes", y="valor", color="representante", title="Faturamento NF por representante", color_discrete_sequence=FARDIN_COLOR_SEQUENCE), use_container_width=True)
 
     if not budget.empty:
         budget_long = budget.melt(
@@ -1503,7 +1544,7 @@ def render_history_tab(hist_pf: pd.DataFrame, hist_geral: pd.DataFrame, hist_rep
             value_name="valor",
         )
         plot_chart(
-            px.bar(budget_long, x="mes", y="valor", color="indicador", barmode="group", title="Orçamento comercial - planejado x realizado"),
+            px.bar(budget_long, x="mes", y="valor", color="indicador", barmode="group", title="Orçamento comercial - planejado x realizado", color_discrete_sequence=FARDIN_COLOR_SEQUENCE),
             use_container_width=True,
         )
 
@@ -1566,6 +1607,7 @@ def render_impact_per_capita_tab(
             markers=True,
             title="R$ per capita por mes",
             labels={"data": "Mes", "per_capita": "R$ per capita"},
+            color_discrete_sequence=FARDIN_COLOR_SEQUENCE,
         )
         fig_pc.update_xaxes(tickformat="%m/%Y")
         plot_chart(fig_pc, use_container_width=True)
@@ -1579,6 +1621,7 @@ def render_impact_per_capita_tab(
                 color="periodo",
                 title="Faturamento usado no per capita",
                 labels={"data": "Mes", "vendas": "R$ vendas"},
+                color_discrete_sequence=FARDIN_COLOR_SEQUENCE,
             )
             fig_sales.update_xaxes(tickformat="%m/%Y")
             plot_chart(fig_sales, use_container_width=True)
@@ -1590,6 +1633,7 @@ def render_impact_per_capita_tab(
                 color="periodo",
                 title="Ganho / perda vs base",
                 labels={"data": "Mes", "ganho": "R$"},
+                color_discrete_sequence=FARDIN_COLOR_SEQUENCE,
             )
             fig_gain.update_xaxes(tickformat="%m/%Y")
             plot_chart(fig_gain, use_container_width=True)
