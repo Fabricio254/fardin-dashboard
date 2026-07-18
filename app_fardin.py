@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from html import escape
 from io import BytesIO
@@ -1240,22 +1240,21 @@ def render_daily_tab(daily: pd.DataFrame, sellers: pd.DataFrame, metas: pd.DataF
     render_daily_goals(daily, sellers, families, seller_goals)
 
     by_day = daily.sort_values("data")
+    chart_daily = by_day.copy()
+    if chart_daily["mes_ref"].nunique(dropna=True) > 1:
+        latest_month = chart_daily["mes_ref"].max()
+        chart_daily = chart_daily[chart_daily["mes_ref"] == latest_month]
+
+    chart_month = chart_daily["mes"].dropna().iloc[0] if not chart_daily["mes"].dropna().empty else ""
     fig = px.bar(
-        by_day,
+        chart_daily,
         x="data",
         y="faturamento_realizado",
-        color="mes",
-        title="Faturamento realizado por dia",
+        title=f"Faturamento realizado por dia - {chart_month}" if chart_month else "Faturamento realizado por dia",
         labels={"data": "Data", "faturamento_realizado": "Faturamento NF"},
+        color_discrete_sequence=["#38bdf8"],
     )
     fig.update_xaxes(tickformat="%d/%m/%Y")
-    fig.add_scatter(
-        x=by_day["data"],
-        y=by_day["resultado_projetado"],
-        mode="lines",
-        name="Resultado projetado",
-        line=dict(color="#dc2626", width=2),
-    )
     plot_chart(fig, use_container_width=True)
 
     col1, col2 = st.columns([1.2, 1])
