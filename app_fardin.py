@@ -1401,17 +1401,6 @@ def render_seller_tab(sellers: pd.DataFrame) -> None:
         )
         plot_chart(fig_pie, use_container_width=True)
 
-    by_month = sellers.groupby(["mes", "vendedor"], as_index=False)["entrada_pv"].sum()
-    fig_month = px.bar(
-        by_month,
-        x="mes",
-        y="entrada_pv",
-        color="vendedor",
-        title="Entrada PV por mês e vendedor/canal",
-        labels={"entrada_pv": "Entrada PV", "mes": "Mês"},
-        color_discrete_sequence=FARDIN_COLOR_SEQUENCE,
-    )
-    plot_chart(fig_month, use_container_width=True)
 
     render_table(
         seller_rank.rename(
