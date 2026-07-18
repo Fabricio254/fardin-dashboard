@@ -198,6 +198,7 @@ def load_monthly_summary(path: str) -> tuple[pd.DataFrame, pd.DataFrame, pd.Data
                         "mes": data.strftime("%b/%y"),
                         "vendedor": seller,
                         "entrada_pv": value,
+                        "meta_vendedor_mes": to_num(raw.iat[7, col]) if raw.shape[0] > 7 else 0,
                     }
                 )
 
@@ -330,6 +331,57 @@ def load_history_pf(path: str) -> pd.DataFrame:
             )
     return pd.DataFrame(rows)
 
+
+FAMILY_MONTH_ORDER = {
+    "Jan": 1,
+    "Fev": 2,
+    "Mar": 3,
+    "Abri": 4,
+    "Abr": 4,
+    "Mai": 5,
+    "Jun": 6,
+    "Jul": 7,
+    "Ago": 8,
+    "Set": 9,
+    "Out": 10,
+    "Nov": 11,
+    "Dez": 12,
+}
+
+
+def family_month_ref(label: str) -> pd.Timestamp | pd.NaT:
+    month = FAMILY_MONTH_ORDER.get(str(label).strip())
+    if not month:
+        return pd.NaT
+    return pd.Timestamp(year=2026, month=month, day=1)
+
+
+@st.cache_data(show_spinner=False)
+def load_family_performance(path: WorkbookSource) -> pd.DataFrame:
+    history = load_history_pf(path)
+    if history.empty:
+        return pd.DataFrame(columns=["familia", "mes_ref", "mes", "meta_familia", "realizado_familia", "atingimento_familia"])
+
+    rows = []
+    for (family, month_label), group in history.groupby(["familia", "mes"], dropna=True):
+        month_ref = family_month_ref(month_label)
+        if pd.isna(month_ref):
+            continue
+        meta = group.loc[group["indicador"].eq("Meta"), "valor"].sum()
+        realised = group.loc[group["indicador"].eq("Real"), "valor"].sum()
+        if meta == 0 and realised == 0:
+            continue
+        rows.append(
+            {
+                "familia": str(family).strip(),
+                "mes_ref": month_ref,
+                "mes": month_ref.strftime("%b/%y"),
+                "meta_familia": float(meta),
+                "realizado_familia": float(realised),
+                "atingimento_familia": float(realised / meta) if meta else 0.0,
+            }
+        )
+    return pd.DataFrame(rows)
 
 @st.cache_data(show_spinner=False)
 def load_history_pr(path: str) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -933,9 +985,9 @@ def render_table(df: pd.DataFrame, **kwargs) -> None:
         unsafe_allow_html=True,
     )
 
-def filter_data(daily: pd.DataFrame, sellers: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+def filter_data(daily: pd.DataFrame, sellers: pd.DataFrame, families: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     if daily.empty:
-        return daily, sellers
+        return daily, sellers, families
 
     st.session_state["_demo_month_blocked"] = False
     min_date = daily["data"].min().date()
@@ -943,6 +995,7 @@ def filter_data(daily: pd.DataFrame, sellers: pd.DataFrame) -> tuple[pd.DataFram
     ordered_months = list(daily.sort_values("data")["mes"].drop_duplicates())
     months = ["Todos"] + ordered_months
     seller_names = ["Todos"] + sorted(sellers.loc[sellers["entrada_pv"] > 0, "vendedor"].dropna().unique().tolist())
+    family_names = ["Todas"] + sorted(families["familia"].dropna().unique().tolist()) if not families.empty else ["Todas"]
     default_month = months.index("Jun/26") if is_demo_access() and "Jun/26" in months else 0
 
     with st.sidebar:
@@ -950,6 +1003,7 @@ def filter_data(daily: pd.DataFrame, sellers: pd.DataFrame) -> tuple[pd.DataFram
         selected_month = st.selectbox("Mês", months, index=default_month)
         date_range = st.date_input("Período", value=(min_date, max_date), min_value=min_date, max_value=max_date, format="DD/MM/YYYY")
         selected_seller = st.selectbox("Vendedor / canal de entrada", seller_names)
+        selected_family = st.selectbox("Família de produtos", family_names)
         only_business_days = st.checkbox("Somente dias úteis", value=False)
 
     if isinstance(date_range, tuple) and len(date_range) == 2:
@@ -959,6 +1013,12 @@ def filter_data(daily: pd.DataFrame, sellers: pd.DataFrame) -> tuple[pd.DataFram
 
     filtered_daily = daily[(daily["data"] >= start) & (daily["data"] <= end)].copy()
     filtered_sellers = sellers[(sellers["data"] >= start) & (sellers["data"] <= end)].copy()
+    if families.empty:
+        filtered_families = families.copy()
+    else:
+        start_month = start.to_period("M").to_timestamp()
+        end_month = end.to_period("M").to_timestamp()
+        filtered_families = families[(families["mes_ref"] >= start_month) & (families["mes_ref"] <= end_month)].copy()
 
     if selected_month != "Todos":
         month_ref = daily.loc[daily["mes"] == selected_month, "mes_ref"].dropna()
@@ -966,12 +1026,13 @@ def filter_data(daily: pd.DataFrame, sellers: pd.DataFrame) -> tuple[pd.DataFram
             month_ref.empty or (int(month_ref.iloc[0].year), int(month_ref.iloc[0].month)) not in DEMO_ALLOWED_MONTHS
         ):
             st.session_state["_demo_month_blocked"] = True
-            return daily.iloc[0:0].copy(), sellers.iloc[0:0].copy()
+            return daily.iloc[0:0].copy(), sellers.iloc[0:0].copy(), families.iloc[0:0].copy()
         filtered_daily = filtered_daily[filtered_daily["mes"] == selected_month]
         filtered_sellers = filtered_sellers[filtered_sellers["mes"] == selected_month]
+        filtered_families = filtered_families[filtered_families["mes"] == selected_month]
     elif is_demo_access():
         st.session_state["_demo_month_blocked"] = True
-        return daily.iloc[0:0].copy(), sellers.iloc[0:0].copy()
+        return daily.iloc[0:0].copy(), sellers.iloc[0:0].copy(), families.iloc[0:0].copy()
 
     if only_business_days:
         filtered_daily = filtered_daily[filtered_daily["dia_util"] == 1]
@@ -985,7 +1046,10 @@ def filter_data(daily: pd.DataFrame, sellers: pd.DataFrame) -> tuple[pd.DataFram
         filtered_sellers = filtered_sellers[filtered_sellers["vendedor"] == selected_seller]
         filtered_daily = filtered_daily[filtered_daily["data"].isin(seller_dates)]
 
-    return filtered_daily, filtered_sellers
+    if selected_family != "Todas" and not filtered_families.empty:
+        filtered_families = filtered_families[filtered_families["familia"] == selected_family]
+
+    return filtered_daily, filtered_sellers, filtered_families
 
 def render_overview(daily: pd.DataFrame, sellers: pd.DataFrame, meta_fardin: pd.DataFrame) -> None:
     if daily.empty:
@@ -1030,13 +1094,132 @@ def render_overview(daily: pd.DataFrame, sellers: pd.DataFrame, meta_fardin: pd.
         metric_card("Meta x real Fardin 2026", pct(realised / target if target else 0), f"{money(realised)} realizado")
 
 
-def render_daily_tab(daily: pd.DataFrame, sellers: pd.DataFrame, metas: pd.DataFrame) -> None:
+def render_daily_goals(daily: pd.DataFrame, sellers: pd.DataFrame, families: pd.DataFrame) -> None:
+    latest_by_month = daily.sort_values("data").groupby("mes_ref", as_index=False).tail(1)
+    default_total_goal = float(latest_by_month["meta_mes"].sum()) if not latest_by_month.empty else 0.0
+    realised_total = float(latest_by_month["faturamento_acumulado"].sum()) if not latest_by_month.empty else 0.0
+
+    if "daily_manual_total_goal" not in st.session_state:
+        st.session_state["daily_manual_total_goal"] = default_total_goal
+
+    st.markdown("#### Metas e atingimento")
+    col_goal, col_result, col_pct = st.columns(3)
+    with col_goal:
+        total_goal = st.number_input(
+            "Meta total do período",
+            min_value=0.0,
+            step=1000.0,
+            format="%.2f",
+            key="daily_manual_total_goal",
+        )
+    total_pct = realised_total / total_goal if total_goal else 0.0
+    with col_result:
+        metric_card("Realizado total", money(realised_total), "Faturamento NF acumulado")
+    with col_pct:
+        metric_card("Atingimento total", pct(total_pct), money(realised_total - total_goal) + " de gap")
+
+    if sellers.empty:
+        st.info("Sem vendas por vendedor/canal no período para calcular metas individuais.")
+    else:
+        seller_actual = sellers.groupby("vendedor", as_index=False)["entrada_pv"].sum()
+        if "meta_vendedor_mes" in sellers.columns:
+            seller_defaults = (
+                sellers.drop_duplicates(["mes_ref", "vendedor"])
+                .groupby("vendedor", as_index=False)["meta_vendedor_mes"]
+                .sum()
+            )
+        else:
+            seller_defaults = pd.DataFrame({"vendedor": seller_actual["vendedor"], "meta_vendedor_mes": 0.0})
+
+        goal_table = seller_actual.merge(seller_defaults, on="vendedor", how="left").fillna(0)
+        goal_table = goal_table.rename(
+            columns={
+                "vendedor": "Vendedor/canal",
+                "entrada_pv": "Realizado PV",
+                "meta_vendedor_mes": "Meta",
+            }
+        )
+        goal_table = goal_table.sort_values("Realizado PV", ascending=False)
+        edited = st.data_editor(
+            goal_table[["Vendedor/canal", "Realizado PV", "Meta"]],
+            use_container_width=True,
+            hide_index=True,
+            disabled=["Vendedor/canal", "Realizado PV"],
+            column_config={
+                "Realizado PV": st.column_config.NumberColumn(format="R$ %.2f"),
+                "Meta": st.column_config.NumberColumn(format="R$ %.2f", min_value=0.0, step=1000.0),
+            },
+            key="daily_seller_goals_editor",
+        )
+        edited["% ating."] = np.where(edited["Meta"] > 0, edited["Realizado PV"] / edited["Meta"], 0)
+        edited["Gap"] = edited["Realizado PV"] - edited["Meta"]
+        render_table(
+            edited,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Realizado PV": st.column_config.NumberColumn(format="R$ %.2f"),
+                "Meta": st.column_config.NumberColumn(format="R$ %.2f"),
+                "% ating.": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=1),
+                "Gap": st.column_config.NumberColumn(format="R$ %.2f"),
+            },
+        )
+
+    if families.empty:
+        st.info("Sem dados de família de produtos para os filtros selecionados.")
+        return
+
+    st.markdown("#### Meta x realizado por família")
+    family_summary = (
+        families.groupby("familia", as_index=False)
+        .agg(meta_familia=("meta_familia", "sum"), realizado_familia=("realizado_familia", "sum"))
+        .sort_values("realizado_familia", ascending=False)
+    )
+    family_summary["atingimento_familia"] = np.where(
+        family_summary["meta_familia"] > 0,
+        family_summary["realizado_familia"] / family_summary["meta_familia"],
+        0,
+    )
+    family_summary["gap"] = family_summary["realizado_familia"] - family_summary["meta_familia"]
+
+    fig_family = px.bar(
+        family_summary,
+        x="familia",
+        y=["realizado_familia", "meta_familia"],
+        barmode="group",
+        title="Famílias de produtos - meta x realizado",
+        labels={"value": "R$", "familia": "Família", "variable": "Indicador"},
+    )
+    plot_chart(fig_family, use_container_width=True)
+    render_table(
+        family_summary.rename(
+            columns={
+                "familia": "Família",
+                "meta_familia": "Meta",
+                "realizado_familia": "Realizado",
+                "atingimento_familia": "% ating.",
+                "gap": "Gap",
+            }
+        ),
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Meta": st.column_config.NumberColumn(format="R$ %.2f"),
+            "Realizado": st.column_config.NumberColumn(format="R$ %.2f"),
+            "% ating.": st.column_config.ProgressColumn(format="%.1f%%", min_value=0, max_value=1),
+            "Gap": st.column_config.NumberColumn(format="R$ %.2f"),
+        },
+    )
+
+def render_daily_tab(daily: pd.DataFrame, sellers: pd.DataFrame, metas: pd.DataFrame, families: pd.DataFrame) -> None:
     st.subheader("Resumo diário de vendas")
     st.markdown('<div class="section-note">Informações vindas das abas mensais do arquivo de Resumo Diário.</div>', unsafe_allow_html=True)
 
     if daily.empty:
         st.info("Sem dados no período.")
         return
+
+    render_daily_goals(daily, sellers, families)
 
     by_day = daily.sort_values("data")
     fig = px.bar(
@@ -1536,13 +1719,14 @@ def main() -> None:
         agenda_points, agenda_calendar = load_agenda_impact(avaliacoes_source)
         per_capita_detail, per_capita_summary = load_per_capita(avaliacoes_source)
         graficos_raw = load_graficos_raw(avaliacoes_source)
+        family_performance = load_family_performance(avaliacoes_source)
     except Exception as exc:
         st.error("Nao foi possivel ler os arquivos selecionados.")
         st.caption(f"Resumo: {resumo_name} | Avaliacoes: {avaliacoes_name}")
         st.exception(exc)
         st.stop()
 
-    filtered_daily, filtered_sellers = filter_data(daily, sellers)
+    filtered_daily, filtered_sellers, filtered_families = filter_data(daily, sellers, family_performance)
 
     if is_demo_access() and st.session_state.get("_demo_month_blocked"):
         render_development_notice("Mes em desenvolvimento")
@@ -1561,7 +1745,7 @@ def main() -> None:
         ]
     )
     with tab_daily:
-        render_daily_tab(filtered_daily, filtered_sellers, metas)
+        render_daily_tab(filtered_daily, filtered_sellers, metas, filtered_families)
     with tab_sellers:
         render_seller_tab(filtered_sellers)
     with tab_goals:
